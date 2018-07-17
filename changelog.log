@@ -9,3 +9,7 @@ V0.3.1
 - Increased region-of-interest buffer to prevent overflows that were sometimes generated when scaling very low amplitude signals
 - Added RR-interval comparison with previous RR to increase incorrect peak detection. RR difference is not allowed to be larger than 350ms
 - Tweaked moving average threshold to allow for larger variation in signal<->noise
+
+V0.4
+- Added AVG Logger with automatic amplitude scaling
+- Tweaked performance
