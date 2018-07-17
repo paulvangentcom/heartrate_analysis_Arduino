@@ -65,8 +65,8 @@ struct workingDataContainer
   int16_t rangeCounter = 0;
 
   //peak variables
-  int16_t ROI[40] = {0};
-  int16_t ROI_interp[40] = {0};
+  int16_t ROI[60] = {0};
+  //int16_t ROI_interp[40] = {0};
   int8_t ROIPos = 0;
   int8_t peakFlag = 0;
   int8_t ROI_overflow = 0;
@@ -108,7 +108,7 @@ int findMax(int arr[], int arrLen, struct workingDataContainer &workingData)
   
   for(int i = 0; i<arrLen; i++)
   {
-    if((abs(lastVal - arr[i]) <= 15) && (arr[i] > 925))
+    if((abs(lastVal - arr[i]) <= 5) && (arr[i] > 1020))
     {
       if(clipFlag == 0)
       {
@@ -167,7 +167,7 @@ void establish_range(struct workingDataContainer &workingData)
   } else {
     //set range, minimum range should be bigger than 50
     //otherwise set to default of (0, 1024)
-    if((workingData.rangeHighNext - workingData.rangeLowNext) > 100)
+    if((workingData.rangeHighNext - workingData.rangeLowNext) > 50)
     {
       //update range
       workingData.rangeLow = workingData.rangeLowNext;
@@ -191,6 +191,7 @@ void readSensors(struct workingDataContainer &workingData)
   establish_range(workingData);
   workingData.curVal = map(workingData.curVal, workingData.rangeLow, workingData.rangeHigh, 1, 1024);
   if(workingData.curVal < 0) workingData.curVal = 0;
+  //if(workingData.curVal > 1023) workingData.curVal = 1023;
   
   workingData.movAvgSum += workingData.curVal; //update total sum by adding recent value
   workingData.movAvgSum -= workingData.hrData[workingData.oldestValuePos];  //as well as subtracting oldest value
@@ -203,20 +204,17 @@ void checkForPeak(struct workingDataContainer &workingData)
 {
   if(workingData.hrData[workingData.buffPos] >= workingData.hrMovAvg[workingData.buffPos])
   {
-    if(workingData.ROIPos >= 40){
+    if(workingData.ROIPos >= 60){
       workingData.ROI_overflow = 1;
+      return;
     } else {
-      //Serial.println(1);
       workingData.peakFlag = 1;
       workingData.ROI[workingData.ROIPos] = workingData.curVal;
       workingData.ROIPos++;
       workingData.ROI_overflow = 0;
+      return;
     }
-  } else {
-      //Serial.println(0);
   }
-  
-  //Serial.print(", ");
   
   if((workingData.hrData[workingData.buffPos] <= workingData.hrMovAvg[workingData.buffPos])
   && (workingData.peakFlag == 1))
@@ -226,6 +224,7 @@ void checkForPeak(struct workingDataContainer &workingData)
       workingData.ROI_overflow = 0;
     } else {
       //solve for peak
+      workingData.lastRR = workingData.curRR;
       workingData.curPeakEnd = workingData.absoluteCount;
       workingData.lastPeak = workingData.curPeak;
       workingData.curPeak = findMax(workingData.ROI, workingData.ROIPos, workingData);
@@ -264,7 +263,9 @@ void validatePeak(struct workingDataContainer &workingData)
       workingData.upper_threshold = workingData.RR_mean + (0.3 * workingData.RR_mean);
     }
     
-    if(workingData.curRR < workingData.upper_threshold && workingData.curRR > workingData.lower_threshold)
+    if(workingData.curRR < workingData.upper_threshold &&
+    workingData.curRR > workingData.lower_threshold &&
+    abs(workingData.curRR - workingData.lastRR) < 200)
     {
       updatePeak(workingData);
     }
