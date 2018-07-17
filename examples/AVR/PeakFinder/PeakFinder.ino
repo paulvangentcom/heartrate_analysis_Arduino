@@ -19,14 +19,18 @@
  * GNU General Public License for more details.
  */
 
-//#include "spline.h"
-
 // -------------------- User Settable Variables --------------------
 int8_t hrpin = 0; //Whatever analog pin the sensor is hooked up to
-int t1, t_end;
+int8_t report_hr = 1; //if 1, reports raw heart rate and peak threshold data as well, else set to 0 (default 0)
+float max_bpm = 180; //The max BPM to be expected, used in error detection (default 180)
+float min_bpm = 45; //The min BPM to be expected, used in error detection (default 45)
+long unsigned int t1, t_end;
+long t_total = 0;
+int t_count = 0;
 
 
-
+// -------------------- Non-Settable Variables --------------------
+// Seriously, don't touch
 int largestVal = 0;
 int largestValPos = 0;
 int clippingcount = 0;
@@ -34,6 +38,8 @@ int8_t clipFlag = 0;
 int clipStart = 0;
 int8_t clipEnd = 0;
 int lastVal = 0;
+int16_t max_RR = (60.0 / min_bpm) * 1000.0;
+int16_t min_RR = (60.0 / max_bpm) * 1000.0;
 
 
 // -------------------- Define Data Structs --------------------
@@ -52,6 +58,11 @@ struct workingDataContainer
   int16_t hrMovAvg[100] = {0};
   int8_t oldestValuePos = 1;
   long movAvgSum = 0;
+  int16_t rangeLow = 0;
+  int16_t rangeLowNext = 1024;
+  int16_t rangeHigh = 1023;
+  int16_t rangeHighNext = 1;
+  int16_t rangeCounter = 0;
 
   //peak variables
   int16_t ROI[40] = {0};
@@ -68,7 +79,11 @@ struct workingDataContainer
   int16_t lastRR = 0;
   int16_t curRR = 0;
   int16_t recent_RR[20] = {0};
+  int16_t RR_mean = 0;
+  int16_t RR_sum = 0;
   int8_t RR_pos = 0;
+  int16_t lower_threshold = 0;
+  int16_t upper_threshold = 1;
 };
 
 struct workingDataContainer workingData;
@@ -93,8 +108,6 @@ int findMax(int arr[], int arrLen, struct workingDataContainer &workingData)
   
   for(int i = 0; i<arrLen; i++)
   {
-    //Serial.print(arr[i]);
-    //Serial.print(", ");
     if((abs(lastVal - arr[i]) <= 15) && (arr[i] > 925))
     {
       if(clipFlag == 0)
@@ -124,29 +137,68 @@ int findMax(int arr[], int arrLen, struct workingDataContainer &workingData)
       largestValPos = (clipStart + (clipEnd - clipStart)) / 2;
     }
   }
-
-  
-
-  /*Serial.println();
-  Serial.print(arrLen);
-  Serial.print(", ");
-  Serial.print(largestValPos);
-  Serial.print(", ");
-  Serial.print(clippingcount);
-  Serial.print(", ");
-  Serial.print(clipStart);
-  Serial.print(", ");
-  Serial.println(clipEnd);*/
-  
+    
   return workingData.curPeakEnd - (arrLen - largestValPos);
 }
 
-int findPeakTime(int maxPos, int arrLen)
+void getMeanRR(struct workingDataContainer &workingData)
+{ //returns the mean of the RR_list array.
+  workingData.RR_sum = 0;
+  for(int i = 0; i<20; i++)
+  {
+    workingData.RR_sum += workingData.recent_RR[i];
+  }
+  workingData.RR_mean = workingData.RR_sum / 20;  
+}
+
+int16_t map_int(int16_t x, int16_t in_min, int16_t in_max, int16_t out_min, int16_t out_max)
 {
-  //function to find the absolute position in time 
+  return (x - in_min) * (out_max - out_min + 1) / (in_max - in_min + 1) + out_min;
+}
+
+void establish_range(struct workingDataContainer &workingData)
+{
+  if(workingData.rangeCounter <= 200)
+  {
+    //update upcoming ranges
+    if(workingData.rangeLowNext > workingData.curVal) workingData.rangeLowNext = workingData.curVal;
+    if(workingData.rangeHighNext < workingData.curVal) workingData.rangeHighNext = workingData.curVal;
+    workingData.rangeCounter++;
+  } else {
+    //set range, minimum range should be bigger than 50
+    //otherwise set to default of (0, 1024)
+    if((workingData.rangeHighNext - workingData.rangeLowNext) > 100)
+    {
+      //update range
+      workingData.rangeLow = workingData.rangeLowNext;
+      workingData.rangeHigh = workingData.rangeHighNext;
+      workingData.rangeLowNext = 1024;
+      workingData.rangeHighNext = 1;      
+    } else {
+      //reset range to default
+      workingData.rangeLow = 0;
+      workingData.rangeHigh = 1024;
+    }
+    workingData.rangeCounter = 0;
+  }
 }
 
 // -------------------- Define Main Functions --------------------
+void readSensors(struct workingDataContainer &workingData)
+{
+  workingData.curVal = analogRead(hrpin); //read latest sensor value
+
+  establish_range(workingData);
+  workingData.curVal = map(workingData.curVal, workingData.rangeLow, workingData.rangeHigh, 1, 1024);
+  if(workingData.curVal < 0) workingData.curVal = 0;
+  
+  workingData.movAvgSum += workingData.curVal; //update total sum by adding recent value
+  workingData.movAvgSum -= workingData.hrData[workingData.oldestValuePos];  //as well as subtracting oldest value
+  workingData.hrMovAvg[workingData.buffPos] = workingData.movAvgSum / workingData.windowSize; //compute moving average
+  workingData.hrData[workingData.buffPos] = workingData.curVal; //store sensor value
+  
+}
+
 void checkForPeak(struct workingDataContainer &workingData)
 {
   if(workingData.hrData[workingData.buffPos] >= workingData.hrMovAvg[workingData.buffPos])
@@ -177,25 +229,67 @@ void checkForPeak(struct workingDataContainer &workingData)
       workingData.curPeakEnd = workingData.absoluteCount;
       workingData.lastPeak = workingData.curPeak;
       workingData.curPeak = findMax(workingData.ROI, workingData.ROIPos, workingData);
-      workingData.recent_RR[workingData.RR_pos] = workingData.curPeak;
-      workingData.RR_pos++;
-      if(workingData.RR_pos >= 10)
-      {
-        for(int i = 0; i<10; i++)
-        {
-          Serial.print(workingData.recent_RR[i]);
-          Serial.print(", ");
-        }
-        Serial.println();
-        delay(200);
-        //exit(0);
-      }
+      workingData.curRR = (workingData.curPeak - workingData.lastPeak) * 10;
       //Serial.println(workingData.curPeak);
       //add peak to struct
     }
     workingData.peakFlag = 0;
     workingData.ROIPos = 0;
+
+    //error detection run, timed at ????????????????????
+
+    if(workingData.curRR > max_RR || workingData.curRR < min_RR)
+    {
+      return; //break if outside of BPM bounds anyway
+    } else if(workingData.initFlag != 0)
+    {
+      validatePeak(workingData);
+    } else {
+      updatePeak(workingData);
+    }
   }
+}
+
+void validatePeak(struct workingDataContainer &workingData)
+{
+  //validate peaks by thresholding, only update if within thresholded band
+  if(workingData.initFlag != 0)
+  {
+    getMeanRR(workingData);
+    if((workingData.RR_mean* 0.3) <= 300){
+      workingData.lower_threshold = workingData.RR_mean - 300;
+      workingData.upper_threshold = workingData.RR_mean + 300;
+    } else{
+      workingData.lower_threshold = workingData.RR_mean - (0.3 * workingData.RR_mean);
+      workingData.upper_threshold = workingData.RR_mean + (0.3 * workingData.RR_mean);
+    }
+    
+    if(workingData.curRR < workingData.upper_threshold && workingData.curRR > workingData.lower_threshold)
+    {
+      updatePeak(workingData);
+    }
+  }
+}
+
+void updatePeak(struct workingDataContainer &workingData)
+{
+  //updates peak positions, adds RR-interval to recent intervals
+  workingData.recent_RR[workingData.RR_pos] = workingData.curRR;
+  workingData.RR_pos++;
+  
+  if(workingData.RR_pos >= 20)
+  {
+    workingData.RR_pos = 0;
+    workingData.initFlag = 1;
+  }
+
+  /*if(!report_hr)
+  {
+    Serial.println(workingData.curPeak);
+  } else {
+    //Serial.print(workingData.curRR);
+    Serial.print(workingData.curPeak);
+  }*/
 }
 
 // -------------------- Define Timer Interrupts --------------------
@@ -212,37 +306,53 @@ void setInterrupt()
   sei();
 }
 
-void readSensors(struct workingDataContainer &workingData)
-{
-  workingData.curVal = analogRead(hrpin); //read latest sensor value
-  workingData.movAvgSum += workingData.curVal; //update total sum by adding recent value
-  workingData.movAvgSum -= workingData.hrData[workingData.oldestValuePos];  //as well as subtracting oldest value
-  workingData.hrMovAvg[workingData.buffPos] = workingData.movAvgSum / workingData.windowSize; //compute moving average
-  workingData.hrData[workingData.buffPos] = workingData.curVal; //store sensor value
-}
-
 ISR(TIMER1_COMPA_vect)
 { 
+  t1 = micros();
   //define interrupt service routine
-  //timed sensor read + mov avg calc routine at 152 uSec on 16 MHz
+  //timed sensor read + mov avg calc routine at 152 uSec on 16 MHz, more than fast enough
   readSensors(workingData);
 
-  //check peak
-  checkForPeak(workingData);
+  //get new range estimate
+  //establish_range(workingData);
 
-  Serial.print(workingData.hrData[workingData.buffPos]);
+  //scale sensor value
+  //workingData.curVal = map(workingData.curVal, workingData.rangeLow, workingData.rangeHigh, 0, 1023);
+
+  //check peak, timed at 60-275 uSec on 16MHz on average
+  checkForPeak(workingData);
+  
+
+  if(report_hr) 
+  {
+    /*Serial.print(",");
+    Serial.print(workingData.hrMovAvg[workingData.buffPos]);
+    Serial.print(",");
+    Serial.print(workingData.curVal);
+    //find out what's happening with the scaling
+    Serial.print(",");
+    Serial.print(workingData.rangeLow);
+    Serial.print(",");
+    Serial.println(workingData.rangeHigh);*/
+  }
+  /*Serial.print(workingData.hrData[workingData.buffPos]);
   Serial.print(", ");
-  Serial.println(workingData.hrMovAvg[workingData.buffPos]);
+  Serial.println(workingData.hrMovAvg[workingData.buffPos]);*/
   //Serial.println(freeRam());
 
   //update buffer pointers
   workingData.buffPos++; //update buffer position pointers
   workingData.oldestValuePos++;
-  
+
+  //reset buffer pointers if at end of buffer
   if(workingData.buffPos >= 100) workingData.buffPos = 0;
   if(workingData.oldestValuePos >= 100) workingData.oldestValuePos = 0;
 
   workingData.absoluteCount++;
+  t_end = micros() - t1;
+  Serial.print("total loop time: ");
+  Serial.print(t_end);
+  Serial.println(" uSec");
 }
 
 // -------------------- Setup --------------------
@@ -251,6 +361,12 @@ void setup()
   //start serial
   Serial.begin(250000);
 
+  Serial.println("Welcome, starting up..");
+  Serial.print("minimum expected RR: ");
+  Serial.print(min_RR);
+  Serial.print(" maximum expected RR:");
+  Serial.println(max_RR);
+  
   //start timer interrupts
   setInterrupt();
 
