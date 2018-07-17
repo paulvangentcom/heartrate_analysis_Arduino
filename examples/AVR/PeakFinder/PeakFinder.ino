@@ -283,18 +283,19 @@ void updatePeak(struct workingDataContainer &workingData)
     workingData.initFlag = 1;
   }
 
-  /*if(!report_hr)
+  if(!report_hr)
   {
     Serial.println(workingData.curPeak);
   } else {
     //Serial.print(workingData.curRR);
     Serial.print(workingData.curPeak);
-  }*/
+  }
 }
 
 // -------------------- Define Timer Interrupts --------------------
 void setInterrupt()
 {
+  //function to set hardware timer interrupts at 100Hz.
   cli();
   TCCR1A = 0;
   TCCR1B = 0;
@@ -308,24 +309,20 @@ void setInterrupt()
 
 ISR(TIMER1_COMPA_vect)
 { 
-  t1 = micros();
-  //define interrupt service routine
-  //timed sensor read + mov avg calc routine at 152 uSec on 16 MHz, more than fast enough
+  /* define interrupt service routine
+  * timed total interrupt routine at max 250 microsec
+  * more than fast enough for 100Hz.
+  * higher sampling rate not recommended due to increased RAM requirements
+  */
   readSensors(workingData);
 
-  //get new range estimate
-  //establish_range(workingData);
-
-  //scale sensor value
-  //workingData.curVal = map(workingData.curVal, workingData.rangeLow, workingData.rangeHigh, 0, 1023);
-
-  //check peak, timed at 60-275 uSec on 16MHz on average
+  //check if peak is present, update variables if so
   checkForPeak(workingData);
   
-
+  //report raw signal if requested
   if(report_hr) 
   {
-    /*Serial.print(",");
+    Serial.print(",");
     Serial.print(workingData.hrMovAvg[workingData.buffPos]);
     Serial.print(",");
     Serial.print(workingData.curVal);
@@ -333,26 +330,19 @@ ISR(TIMER1_COMPA_vect)
     Serial.print(",");
     Serial.print(workingData.rangeLow);
     Serial.print(",");
-    Serial.println(workingData.rangeHigh);*/
+    Serial.println(workingData.rangeHigh);
   }
-  /*Serial.print(workingData.hrData[workingData.buffPos]);
-  Serial.print(", ");
-  Serial.println(workingData.hrMovAvg[workingData.buffPos]);*/
-  //Serial.println(freeRam());
 
-  //update buffer pointers
-  workingData.buffPos++; //update buffer position pointers
+  //update buffer position pointers
+  workingData.buffPos++;
   workingData.oldestValuePos++;
 
   //reset buffer pointers if at end of buffer
   if(workingData.buffPos >= 100) workingData.buffPos = 0;
   if(workingData.oldestValuePos >= 100) workingData.oldestValuePos = 0;
 
+  //increment total sample counter (used for RR determination)
   workingData.absoluteCount++;
-  t_end = micros() - t1;
-  Serial.print("total loop time: ");
-  Serial.print(t_end);
-  Serial.println(" uSec");
 }
 
 // -------------------- Setup --------------------
@@ -360,16 +350,10 @@ void setup()
 {
   //start serial
   Serial.begin(250000);
-
   Serial.println("Welcome, starting up..");
-  Serial.print("minimum expected RR: ");
-  Serial.print(min_RR);
-  Serial.print(" maximum expected RR:");
-  Serial.println(max_RR);
   
   //start timer interrupts
   setInterrupt();
-
 }
 
 // -------------------- Main Loop --------------------
