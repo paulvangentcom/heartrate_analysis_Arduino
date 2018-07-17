@@ -7,4 +7,5 @@ V0.3.1
 - Improved Clipping detection in AVR Peak Detector
 - Made signal scaling slightly more sensitive to very low amplitude signals
 - Increased region-of-interest buffer to prevent overflows that were sometimes generated when scaling very low amplitude signals
-- Added RR-interval comparison with previous RR to increase incorrect peak detection. RR difference is not allowed to be larger than 200ms.
+- Added RR-interval comparison with previous RR to increase incorrect peak detection. RR difference is not allowed to be larger than 350ms
+- Tweaked moving average threshold to allow for larger variation in signal<->noise

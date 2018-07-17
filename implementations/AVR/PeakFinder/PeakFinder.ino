@@ -24,9 +24,6 @@ int8_t hrpin = 0; //Whatever analog pin the sensor is hooked up to
 int8_t report_hr = 1; //if 1, reports raw heart rate and peak threshold data as well, else set to 0 (default 0)
 float max_bpm = 180; //The max BPM to be expected, used in error detection (default 180)
 float min_bpm = 45; //The min BPM to be expected, used in error detection (default 45)
-long unsigned int t1, t_end;
-long t_total = 0;
-int t_count = 0;
 
 
 // -------------------- Non-Settable Variables --------------------
@@ -54,7 +51,7 @@ struct workingDataContainer
   int8_t buffPos = 0;
   
   //movavg variables
-  int16_t windowSize = 75; //windowSize in samples
+  int16_t windowSize = 60; //windowSize in samples
   int16_t hrMovAvg[100] = {0};
   int8_t oldestValuePos = 1;
   long movAvgSum = 0;
@@ -206,12 +203,14 @@ void checkForPeak(struct workingDataContainer &workingData)
   {
     if(workingData.ROIPos >= 60){
       workingData.ROI_overflow = 1;
+      if(report_hr) Serial.print(",");
       return;
     } else {
       workingData.peakFlag = 1;
       workingData.ROI[workingData.ROIPos] = workingData.curVal;
       workingData.ROIPos++;
       workingData.ROI_overflow = 0;
+      if(report_hr) Serial.print(",");
       return;
     }
   }
@@ -239,6 +238,7 @@ void checkForPeak(struct workingDataContainer &workingData)
 
     if(workingData.curRR > max_RR || workingData.curRR < min_RR)
     {
+      if(report_hr) Serial.print(",");
       return; //break if outside of BPM bounds anyway
     } else if(workingData.initFlag != 0)
     {
@@ -246,7 +246,7 @@ void checkForPeak(struct workingDataContainer &workingData)
     } else {
       updatePeak(workingData);
     }
-  }
+  } else if (report_hr) Serial.print(",");
 }
 
 void validatePeak(struct workingDataContainer &workingData)
@@ -265,9 +265,11 @@ void validatePeak(struct workingDataContainer &workingData)
     
     if(workingData.curRR < workingData.upper_threshold &&
     workingData.curRR > workingData.lower_threshold &&
-    abs(workingData.curRR - workingData.lastRR) < 200)
+    abs(workingData.curRR - workingData.lastRR) < 350)
     {
       updatePeak(workingData);
+    } else {
+      if(report_hr) Serial.print(",");
     }
   }
 }
@@ -286,9 +288,12 @@ void updatePeak(struct workingDataContainer &workingData)
 
   if(!report_hr)
   {
+    Serial.print(workingData.curRR);
+    Serial.print(",");
     Serial.println(workingData.curPeak);
   } else {
-    //Serial.print(workingData.curRR);
+    Serial.print(workingData.curRR);
+    Serial.print(",");
     Serial.print(workingData.curPeak);
   }
 }
@@ -326,14 +331,8 @@ ISR(TIMER1_COMPA_vect)
     Serial.print(",");
     Serial.print(workingData.hrMovAvg[workingData.buffPos]);
     Serial.print(",");
-    Serial.print(workingData.curVal);
-    //find out what's happening with the scaling
-    Serial.print(",");
-    Serial.print(workingData.rangeLow);
-    Serial.print(",");
-    Serial.println(workingData.rangeHigh);
+    Serial.println(workingData.curVal);
   }
-
   //update buffer position pointers
   workingData.buffPos++;
   workingData.oldestValuePos++;
