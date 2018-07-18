@@ -14,6 +14,7 @@ Index
    :caption: .
 
    quickstart
+   hookupguide
    heartrateanalysis
    algorithmfunctioning
    development

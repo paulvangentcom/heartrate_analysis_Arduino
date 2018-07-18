@@ -714,7 +714,7 @@ void preProcessor(struct workingDataContainer &workingdata)
   //enhance peaks several times to accentuate the R-peak in the QRS complex
   enhancePeaks(workingData);
   enhancePeaks(workingData);
-  enhancePeaks(workingData);
+  //enhancePeaks(workingData);
   workingData.heartMean = getMeanInt32(workingData.heartData, workingData.datalen); //get mean of heart rate signal
 }
 
