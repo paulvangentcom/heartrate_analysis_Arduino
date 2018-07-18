@@ -25,3 +25,5 @@ V0.6
 
 TODO before 0.7:
 - upgrade sampling rate on ARM peakfinder
+- make sampling rate settable for ARM amplitude scaling version
+- make sampling rate settable for ARM full solution version
