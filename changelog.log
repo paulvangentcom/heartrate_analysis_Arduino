@@ -18,4 +18,10 @@ V0.4
 
 V0.5
 - Added ARM Peakfinder
-- todo: upgrade sampling rate on ARM peakfinder
+
+V0.6
+- Added ARM full USB analysis implementation
+
+
+TODO before 0.7:
+- upgrade sampling rate on ARM peakfinder
