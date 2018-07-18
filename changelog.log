@@ -13,3 +13,4 @@ V0.3.1
 V0.4
 - Added AVG Logger with automatic amplitude scaling
 - Tweaked performance
+- Added ARM Logger Version (Teensy boards)
