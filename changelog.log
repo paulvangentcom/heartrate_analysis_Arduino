@@ -11,7 +11,11 @@ V0.3.1
 - Tweaked moving average threshold to allow for larger variation in signal<->noise
 
 V0.4
-- Added AVG Logger with automatic amplitude scaling
+- Added AVR Logger with automatic amplitude scaling
 - Tweaked performance
 - Added ARM Logger Version (Teensy boards)
 - Added ARM Logger with automatic amplitude scaling
+
+V0.5
+- Added ARM Peakfinder
+- todo: upgrade sampling rate on ARM peakfinder
