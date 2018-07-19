@@ -19,7 +19,7 @@
 
 # -- Project information -----------------------------------------------------
 
-project = 'Python Heart Rate Analysis Toolkit'
+project = 'Arduino Heart Rate Analysis Toolkit'
 copyright = '2018, Paul van Gent'
 author = 'Paul van Gent'
 

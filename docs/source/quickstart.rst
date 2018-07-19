@@ -4,6 +4,11 @@
 Quickstart Guide
 ****************
 
+Where to begin?
+===============
+If you find yourself here, chances are you want to use the developed toolkit in your research or some other non-commercial application.
+
+
 Coding Structure
 ================
 
