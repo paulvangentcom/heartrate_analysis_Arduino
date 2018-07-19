@@ -23,6 +23,7 @@ Index
    :caption: .
 
    quickstart
+   implementations
    hookupguide
    heartrateanalysis
    algorithmfunctioning

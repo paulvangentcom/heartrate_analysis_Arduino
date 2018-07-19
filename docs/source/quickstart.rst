@@ -6,7 +6,17 @@ Quickstart Guide
 
 Where to begin?
 ===============
-If you find yourself here, chances are you want to use the developed toolkit in your research or some other non-commercial application.
+If you find yourself here, chances are you want to use the developed toolkit in your research or some other open-source application. Great! On this page we will describe the options available to you. If you already know what you want please go to the :ref:`implementations` section.
+
+Otherwise, look at the statements below and click whichever one is closest to your situation:
+
+- **I have recorded heart rate data and want to analyse it.**
+- **I have a way of recording heart rate data, and just want to analyse the recorded data.**
+- **I just want to record heart rate data unintrusively, I have my own analysis tools.**
+- **I want to record heart rate data unintrusively, it's ok if the analysis is done later (offline).**
+- **I want to recorde heart rate data and analyse the results real-time.**
+
+
 
 
 Coding Structure

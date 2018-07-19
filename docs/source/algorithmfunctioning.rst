@@ -1,8 +1,8 @@
 .. _algorithm functioning:
 
-*********************
-Algorithm functioning
-*********************
+**********************************
+Background - Algorithm functioning
+**********************************
 
 This section describes the details of the algorithm functionality. 
 

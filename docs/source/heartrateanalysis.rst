@@ -1,8 +1,8 @@
 .. _heart rate analysis:
 
-*******************
-Heart Rate Analysis
-*******************
+********************************
+Background - Heart Rate Analysis
+********************************
 
 A complete description of the algorithm can be found in: <ref embedded paper>.
 

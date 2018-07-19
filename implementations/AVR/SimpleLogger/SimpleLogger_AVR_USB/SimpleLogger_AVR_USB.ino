@@ -4,9 +4,9 @@
  *      
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License V3 as published by
- * the Free Software Foundation. The program is free for any non-commercial
- * usage and adaptation, granted you give the recipients of your code the same
- * open-source rights and license.
+ * the Free Software Foundation. The program is free for any commercial and
+ * non-commercial usage and adaptation, granted you give the recipients 
+ * of your code the same open-source rights and license.
  * 
  * Please add the following citation to any work utilising one or more of the
  * implementation from this project:
@@ -21,11 +21,11 @@
 
 // -------------------- User Settable Variables --------------------
 int8_t hrpin = 0; //Whatever analog pin the sensor is hooked up to
-int8_t mode = 6; //Speed mode. \
+int8_t mode = 6; /*Speed mode. \
               0 for 100Hz, 1 for 200Hz, 2 for 250Hz, \
               3 for 500Hz, 4 for 1000Hz 5 for 2000Hz, \
               and 6 for custom. Custom mode is set through Serial.\
-              See documentation for details.              
+              See documentation for details.*/              
 // -------------------- End User Settable Variables --------------------
 //Don't change values from here on unless you know what you're doing
 long fs;
