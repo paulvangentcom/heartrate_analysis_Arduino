@@ -22,6 +22,8 @@ V0.5
 V0.6
 - Added ARM full USB analysis implementation
 
+V0.6.1
+- Merged Simple Logger and Simple Logger with Scaling into one with settable flag.
 
 TODO before 0.7:
 - upgrade sampling rate on ARM peakfinder
