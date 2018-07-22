@@ -10,22 +10,26 @@ Each implementation may be available for different chipsets. The requirements ar
 
 have different options and characteristics. This section describes them as best as possible. The implementations are split into AVR (Arduino, and other 8-bit Atmel chipsets), and ARM (Teensy and other boards using ARM (Cortex) or other 32-bit chipsets).
 
+---------------------------
+
+.. _simplelogger: 
 
 Simple Logger
 =============
-The simple logger implementation functions as a basic data logging device with highly precise timing. It utilizes hardware interrupt timers so that the chosen sampling rate is reliably maintained throughout the logging process. This differs from for example logging solutions using linux-boards (such as Raspberry Pi) or pc-based logging systems, where timing accuracy is often not ensured.
+The simple logger implementation functions as a basic data logging device with highly precise timing. It utilizes hardware interrupt timers so that the chosen sampling rate is reliably maintained throughout the logging process. This differs from for example logging solutions using linux-boards (such as Raspberry Pi), pc-based logging systems, or indeed many Arduino versions out there, where timing accuracy is often not ensured. `See here for more information on hardware timers <http://www.paulvangent.com/2018/03/28/hardware-interrupts-are-not-that-scary/>`_.
 
-+-------------+-------------+-----------------------------------------+
-| Board type  | Functional? | Notes                                   |
-+=============+=============+=========================================+
-| Arduino     | Yes         | All except ATTiny based                 |
-+-------------+-------------+-----------------------------------------+
-| Teensy      | Yes         | All versions                            |
-+-------------+-------------+-----------------------------------------+
-| Other       | Yes         | | Requires >700bytes RAM                |
-|             |             | | Sampling rate dependent on chip speed |
-|             |             | | Tested up to 2KHz on 16MHz 328p       |
-+-------------+-------------+-----------------------------------------+
++-------------+-------------+-----------------------------------------------------+
+| Board type  | Available?  | Notes                                               |
++=============+=============+=====================================================+
+| Arduino     | Yes         | All except ATTiny based                             |
++-------------+-------------+-----------------------------------------------------+
+| Teensy      | Yes         | All versions                                        |
++-------------+-------------+-----------------------------------------------------+
+| Other       | Yes         | | Requires >700 bytes RAM                           |
+|             |             | | SD version requires 512 bytes extra for buffering |
+|             |             | | Sampling rate dependent on chip speed             |
+|             |             | | Tested up to 2KHz on 16MHz 328p                   |
++-------------+-------------+-----------------------------------------------------+
 
 
 Settable options available in the code:
@@ -34,17 +38,102 @@ Settable options available in the code:
 
     // -------------------- User Settable Variables --------------------
     int8_t hrpin = 0; //Whatever analog pin the sensor is hooked up to
-    int8_t mode = 6; /*Speed mode. \
-                     0 for 100Hz, 1 for 200Hz, 2 for 250Hz, \
-                     3 for 500Hz, 4 for 1000Hz 5 for 2000Hz, \
-                     and 6 for custom. Custom mode is set through Serial.\
-                     See documentation for details.*/         
+    int8_t scale_data = 1; /*Uses dynamic scaling of data when set to 1, not if set to 0 \
+                           sampling speed over 1500Hz not recommended when scaling data 
+                           on 8-bit AVR (e.g. Arduino)*/
+    int8_t mode = 0; /*Speed mode. \
+                  0 means the "sample_rate" speed will be used \
+                  1 means custom. Custom sampling rate is set through Serial after connect.\
+                  See documentation for details.  */
+    int16_t sample_rate = 1500; /*should be 4Hz or more, over 2KHz on AVR not recommended.
+                               When using adaptive scaling: over 1.5KHz not recommended on AVR.
+                               Higher speeds attainable on 32-bit chipsets.
+                               Please see documentation for suggested limits and theoretical limits*/       
 
 - **hrpin**: the pin you connected the sensor to. By default it is set to 0, meaning Analog-0 (often called A0 on the board pinout).
-- **mode**: the logging mode, indicating what speed you want the logger to run at. modes 0-5 specify pre-set speeds ranging from 100Hz to 2KHz. Mode 6 indicates a user-settable mode. 
+- **scale_data**: Whether to use adaptive scaling, see :ref:`scaling`. Set to '1' to enable adaptive scaling, set to '0' to disable.
+- **mode**: the logging mode, indicating if you want a predefined sampling rate, or want to set it at boot. If set to '0', whatever value is set in "sample_rate" will be adhered to.
+- **sample_rate**: the sample rate to adhere to when mode is set to 0.
 
-Two versions are available, a **USB-version** and a **SD-version**. The first is connected to a PC using a USB cable. The second can funcion as a stand-alone with an SD-card. **See here how to hook up an SD adapter.**
 
-The **USB logger** starts when a serial connection is made to the device. There is an example Python file supplied that does so using :code:`PySerial`. When set to mode 6, once a seriak connection is established the logger will request a logging speed and wait for a reply.
+USB version
+^^^^^^^^^^^
 
-The **SD logger** starts as soon as power is applied to it. If no SD card is present or there is an error writing to the card, the default board light (pin 13) turns on. It flashes when writing data. Custom mode 6 is not available on the SD logger.
+The **USB logger** starts when a serial connection is made to the device. It is meant to be used in connection with a computer to log heart rate. There is an example Python file supplied that shows how to do so using :code:`PySerial`. When set to mode 6, once a serial connection is established the logger will request a logging speed and wait for a reply, otherwise it will just start logging once a serial connection is made.
+
+
+SD Version
+^^^^^^^^^^
+
+The **SD logger** starts as soon as power is applied to it. If no SD card is present or there is an error writing to the card, the default board light (pin 13) turns on and stays on. It flashes while writing data. "mode" is not available on SD version.
+
+---------------------------
+
+.. _peakfinder:
+
+Peak Finder
+===========
+The Peak Finder implementation logs heart rate data, analysis it real-time to identify peaks, and returns the peak positions + RR-intervals. It can also be set to output the raw signal as well. On 8-bit AVR implementations it's limited to 100Hz (mostly due to limitations on RAM used for buffering). It uses adaptive scaling and error correction described in :ref:`algorithm functioning`.
+
++-------------+-------------+-----------------------------------------------------+
+| Board type  | Available?  | Notes                                               |
++=============+=============+=====================================================+
+| Arduino     | Yes         | All except ATTiny based                             |
++-------------+-------------+-----------------------------------------------------+
+| Teensy      | Yes         | | All versions, implementation with                 |
+|             |             | | settable sampling rate coming soon                |
++-------------+-------------+-----------------------------------------------------+
+| Other       | Yes         | | Requires >900 bytes RAM                           |
+|             |             | | SD version requires 512 bytes extra for buffering |
+|             |             | | Sampling rate dependent on chip speed             |
++-------------+-------------+-----------------------------------------------------+
+
+
+.. code-block:: C
+
+    // -------------------- User Settable Variables --------------------
+    int8_t hrpin = 0; //Whatever analog pin the sensor is hooked up to
+    int8_t report_hr = 1; //if 1, reports raw heart rate and peak threshold data as well, else set to 0 (default 0)
+    float max_bpm = 180; //The max BPM to be expected, used in error detection (default 180)
+    float min_bpm = 45; //The min BPM to be expected, used in error detection (default 45)
+
+
+- **hrpin**: the pin you connected the sensor to. By default it is set to 0, meaning Analog-0 (often called A0 on the board pinout).
+- **report_hr**: Set this to '1' to have the logger also output the raw heart rate signal and moving average.
+- **max_bpm**: The maximum BPM to expect, used as a first estimation of peak position accuracy.
+- **min_bpm**: The minimum BPM to expect, used as a first estimation of peak position accuracy.
+
+USB version
+^^^^^^^^^^^
+
+The **USB logger** starts when a serial connection is made to the device. It is meant to be used in connection with a computer to log peak positions and RR-intervals (and raw heart rate if set to output). There is an example Python file supplied that shows how to do so using :code:`PySerial`. The logger runs at a fixes 100Hz rate.
+
+
+SD Version
+^^^^^^^^^^
+
+The **SD logger** starts as soon as power is applied to it. If no SD card is present or there is an error writing to the card, the default board light (pin 13) turns on and stays on. It flashes while writing data.
+
+---------------------------
+
+.. _fullanalysis:
+
+Full Implementation
+===================
+This implementation mirrors the full Python implementation on a Teensy (ARM Cortex-based) board and makes it real-time. The logger collects 20 seconds of heart rate data, and at the end of each measurement period outputs both the time-serie and frequency-series heart rate measures.
+
+For now the sampling rate is fixed at 100Hz. An update is being worked on that will make it settable. The Frequency Measures that are output rely on a squared FFT to estimate the periodogram, which is not a good estimator. It gives an indication, but I would **not recommend** using the frequency measures for scientific use yet. In a future version Welch's method will be implemented.
+
++-------------+-------------+-----------------------------------------------------+
+| Board type  | Available?  | Notes                                               |
++=============+=============+=====================================================+
+| Arduino     | No          | Amount of RAM too limited for required buffers      |
++-------------+-------------+-----------------------------------------------------+
+| Teensy      | Yes         | | All ARM-based versions except Teensy LC,          |
+|             |             | | meaning 3.1, 3.2, 3.5, 3.6                        |
++-------------+-------------+-----------------------------------------------------+
+| Other       | Yes         | | Requires >30 Kilobytes of RAM                     |
+|             |             | | SD version requires 512 bytes extra for buffering |
+|             |             | | Sampling rate fixed @100Hz for now                |
++-------------+-------------+-----------------------------------------------------+
+

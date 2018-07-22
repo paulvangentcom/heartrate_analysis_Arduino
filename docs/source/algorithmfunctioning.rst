@@ -10,6 +10,8 @@ Pre-processing
 ==============
 Depending on which implementation you select, several pre-processing steps can be applied.
 
+.. _scaling:
+
 Adaptive Input Amplitude Scaling
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 This feature is available on all implementations. It can be turned on by setting the flag "adaptivescale" in the "user settable variables" section to 0. The 8-bit AVR boards (Arduino) will be restricted in sampling rate when using adaptive scaling, since it relies on 16- and 32-bit computations, which run slower on 8-bit systems. The ARM (Teensy, 32-bit) boards can handle high sampling rates without issue.
@@ -38,7 +40,7 @@ Two types of peak detection are available, one real-time using adaptive scaling,
 
 Adaptive Scaling
 ~~~~~~~~~~~~~~~~
-When comparing the AVR implementations to the full ARM or Python implementations, the first thing to note is that there is not adaptive moving average in the AVR version. The main reason is that AVR chips have very limited RAM, so the use of buffers required for the adaptive moving average is not feasible. In stead, the AVR implmentation implements adaptive signal scaling as discussed above. 
+When comparing the AVR implementations to the full ARM or Python implementations, the first thing to note is that there is no adaptive moving average in the AVR version. The main reason is that AVR chips have very limited RAM, so the use of buffers required for the adaptive moving average is not feasible. In stead, the AVR implmentation implements adaptive signal scaling as discussed above. 
 
 In the case of adaptive scaling, peak detection functions with a fixed moving average that is computed on-the-fly for each datapoint read from the sensor. Whenever the signal exceeds the moving average, it is stored in a "region of interest" buffer until it dips below the moving average again. The peak is then identified in the region of interest and marked. This process is similar to the adaptive threshold used in the `Python version <https://python-heart-rate-analysis-toolkit.readthedocs.io/en/latest/algorithmfunctioning.html#peak-detection>`_, but in stead of moving the threshold (which requires too much RAM to buffer the signal first), it attempts to standardise the amplitude over time. 
 

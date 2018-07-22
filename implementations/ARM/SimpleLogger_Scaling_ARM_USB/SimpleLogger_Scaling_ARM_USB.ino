@@ -1,12 +1,15 @@
 /*
- * Arduino Heart Rate Analysis Toolbox - AVR Simple USB Logger
+ * Arduino Heart Rate Analysis Toolbox - ARM Simple USB Logger with Adaptive Scaling
  *      Copyright (C) 2018 Paul van Gent
  *      
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License V3 as published by
- * the Free Software Foundation. The program is free for any non-commercial
- * usage and adaptation, granted you give the recipients of your code the same
- * open-source rights and license.
+ * the Free Software Foundation. The program is free for any commercial and
+ * non-commercial usage and adaptation, granted you give the recipients 
+ * of your code the same open-source rights and license.
+ * 
+ * You can read the full license granted to you here:
+ * https://www.gnu.org/licenses/gpl-3.0.en.html
  * 
  * Please add the following citation to any work utilising one or more of the
  * implementation from this project:
@@ -18,7 +21,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
-
+ 
 // -------------------- User Settable Variables --------------------
 long sample_rate = 100; //desired sampling rate in Hz. Not tested over 5000Hz
 int8_t hrpin = 0; //Whatever analog pin the sensor is hooked up to
