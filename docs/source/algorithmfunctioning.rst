@@ -68,6 +68,8 @@ Calculation of Measures
 =======================
 All measures are computed on the detected and accepted peaks in the segment. When RR-intervals are used in computation, only the intervals created by two adjacent, accepted, peaks are used. Whenever differences in RR-intervals are required (for example in the RMSSD), only intervals between two adjacens RR-intervals, which in turn are created by three adjacent, accepted, peaks are used. This ensures that any rejected peaks do not inject measurement error in the subsequent measure calculations.
 
+.. _timeseries:
+
 Time-series
 ~~~~~~~~~~~
 Time series measurements are computed from detected peaks. The output measures are:

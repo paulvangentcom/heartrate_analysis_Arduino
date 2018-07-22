@@ -30,9 +30,12 @@ V0.6.2
 - Cleaned full logger code
 - Added link to full license in each file
 
-
-TODO before 0.7:
+V0.7
 - expand peak finder to calculate time-series measurements
+- Added AVR implementation of peakfinder with time-series measurements output every beat.
+
+
+TODO:
 - make expanded peak finder sample rate settable
 - upgrade sampling rate on ARM peakfinder
 - make sampling rate settable for ARM amplitude scaling version

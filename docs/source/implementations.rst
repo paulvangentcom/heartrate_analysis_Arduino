@@ -116,6 +116,28 @@ The **SD logger** starts as soon as power is applied to it. If no SD card is pre
 
 ---------------------------
 
+.. _timeseriesanalysis:
+
+Time Series Analysis
+====================
+This implementation is a basic heart rate analysis toolkit for both AVR and ARM chipsets. It functions like the peak detector, but will also output the described under :ref:`timeseries` every beat.
+
++-------------+-------------+-----------------------------------------------------+
+| Board type  | Available?  | Notes                                               |
++=============+=============+=====================================================+
+| Arduino     | No          | Amount of RAM too limited for required buffers      |
++-------------+-------------+-----------------------------------------------------+
+| Teensy      | Yes         | | All ARM-based versions except Teensy LC,          |
+|             |             | | meaning 3.1, 3.2, 3.5, 3.6                        |
++-------------+-------------+-----------------------------------------------------+
+| Other       | Yes         | | Requires >30 Kilobytes of RAM                     |
+|             |             | | SD version requires 512 bytes extra for buffering |
+|             |             | | Sampling rate fixed @100Hz for now                |
++-------------+-------------+-----------------------------------------------------+
+
+
+
+
 .. _fullanalysis:
 
 Full Implementation
