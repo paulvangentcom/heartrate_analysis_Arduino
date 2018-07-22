@@ -1,5 +1,5 @@
 /*
- * Arduino Heart Rate Analysis Toolbox - Simple Logger - ARM, USB
+ * Arduino Heart Rate Analysis Toolbox - ARM Simple USB Logger with Adaptive Scaling
  *      Copyright (C) 2018 Paul van Gent
  *      
  * This program is free software: you can redistribute it and/or modify
@@ -22,15 +22,25 @@
  * GNU General Public License for more details.
  */
 
-// -------------------- User Settable Variables --------------------
-int8_t hrpin = 0; //Whatever analog pin the sensor is hooked up to
-long sample_rate = 100; //sample rate in Hz
+// -------------------- Includes --------------------
+#include <SdFat.h>
 
+ 
+// -------------------- User Settable Variables --------------------
+long sample_rate = 1000; //desired sampling rate in Hz. Not tested over 5000Hz
+int8_t hrpin = 0; //Whatever analog pin the sensor is hooked up to
+int8_t scale_data = 1; // Uses dynamic scaling of data when set to 1, not if set to 0
+         
 // -------------------- End User Settable Variables --------------------
 //Don't change values from here on unless you know what you're doing
 long fs;
-long timerMicros;  
+long scalingFactor;
+long timerValue;
+long timerMicros;
 IntervalTimer sensorTimer;
+
+SdFatSdio SD;
+File rawData;
 
 // -------------------- Data Struct Definition--------------------
 struct dataBuffers 
@@ -44,28 +54,104 @@ struct dataBuffers
   int16_t buffer1State = 0;
 };
 
+struct workingDataContainer
+{
+  long curVal = 0;
+  int16_t rangeLow = 0;
+  int16_t rangeLowNext = 1024;
+  int16_t rangeHigh = 1023;
+  int16_t rangeHighNext = 1;
+  int16_t rangeCounter = 0;
+};
+
 // -------------------- Data Struct Init --------------------
 struct dataBuffers dataBuf;
+struct workingDataContainer workingData;
 
 // -------------------- Functions --------------------
+void stopWorking()
+{
+  digitalWrite(13, HIGH);
+  delay(100);
+  exit(0);
+}
+
+void prepareSD()
+{
+  Serial.println("starting SD prep");
+  if (!SD.begin()) {
+    Serial.println("initialisation failed!");
+    stopWorking();
+    return;
+  }
+  Serial.println("initialisation done! Continuing...");
+  rawData = SD.open("raw_hr.csv", FILE_WRITE);
+  rawData.print("\n-------------\nNew Measurement\n-------------\n");
+  rawData.print("hr\n");
+}
+
 void readSensors()
 { //read the sensors, put in correct buffer
+  workingData.curVal = analogRead(hrpin);
+  
+  if(scale_data)
+  { //scale the data if requested
+    establish_range(workingData);
+    workingData.curVal = mapl(workingData.curVal, workingData.rangeLow, workingData.rangeHigh, 1, 1024);  
+    if(workingData.curVal < 0) workingData.curVal = 0;
+  }
+  
+  //put sensor value in correct buffer
   if (dataBuf.bufferMarker == 0) 
   {
-    dataBuf.hrdata0[dataBuf.bufferPointer] = analogRead(hrpin);
+    dataBuf.hrdata0[dataBuf.bufferPointer] = workingData.curVal;
   } else 
   {
-    dataBuf.hrdata1[dataBuf.bufferPointer] = analogRead(hrpin);
+    dataBuf.hrdata1[dataBuf.bufferPointer] = workingData.curVal;
   }
   dataBuf.bufferPointer++;
+}
+
+void establish_range(struct workingDataContainer &workingData)
+{
+  if(workingData.rangeCounter <= scalingFactor)
+  {
+    //update upcoming ranges
+    if(workingData.rangeLowNext > workingData.curVal) workingData.rangeLowNext = workingData.curVal;
+    if(workingData.rangeHighNext < workingData.curVal) workingData.rangeHighNext = workingData.curVal;
+    workingData.rangeCounter++;
+  } else {
+    //set range, minimum range should be bigger than 50
+    //otherwise set to default of (0, 1024)
+    if((workingData.rangeHighNext - workingData.rangeLowNext) > 50)
+    {
+      //update range
+      workingData.rangeLow = workingData.rangeLowNext;
+      workingData.rangeHigh = workingData.rangeHighNext;
+      workingData.rangeLowNext = 1024;
+      workingData.rangeHighNext = 1;      
+    } else {
+      //reset range to default
+      workingData.rangeLow = 0;
+      workingData.rangeHigh = 1024;
+    }
+    workingData.rangeCounter = 0;
+  }
+}
+
+long mapl(long x, long in_min, long in_max, long out_min, long out_max)
+{
+  return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
 }
 
 // -------------------- Setup --------------------
 void setup() 
 {
   //start serial
+  pinMode(13, OUTPUT);
   Serial.begin(250000);  
-  Serial.println("starting logger..");
+  prepareSD();
+  scalingFactor = 2 * sample_rate;
   timerMicros = 1000000 / sample_rate;
   sensorTimer.begin(readSensors, timerMicros);
 }
@@ -86,9 +172,14 @@ void loop()
     }
     dataBuf.bufferMarker = 1; //set buffer flag to buffer1
     dataBuf.bufferPointer = 0; //reset datapoint bufferPointer
-    for (int i = 0; i < 49; i++) { //transmit contents of buffer0
-      Serial.println(dataBuf.hrdata0[i]);
+    
+    digitalWrite(13, HIGH);
+    for (int i = 0; i < 49; i++) { //write contents of buffer0
+      rawData.println(dataBuf.hrdata0[i]);
     }
+    rawData.flush();
+    digitalWrite(13, LOW);
+    
     dataBuf.buffer0State = 0; //release buffer0 after data tranmission, mark as clean
     //here follows same as above, except with reversed buffer order
   } else if ((dataBuf.bufferPointer >= 49) && (dataBuf.bufferMarker == 1)) 
@@ -104,10 +195,15 @@ void loop()
     }
     dataBuf.bufferMarker = 0;
     dataBuf.bufferPointer = 0;
+    
+    digitalWrite(13, HIGH);
     for (int i = 0; i < 49; i++) 
     {
-      Serial.println(dataBuf.hrdata1[i]);
+      rawData.println(dataBuf.hrdata1[i]);
     }
+    rawData.flush();
+    digitalWrite(13, LOW);
+    
     dataBuf.buffer1State = 0;
   }
 }

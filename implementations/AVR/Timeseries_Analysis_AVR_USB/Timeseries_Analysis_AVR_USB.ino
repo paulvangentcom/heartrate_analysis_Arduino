@@ -27,9 +27,9 @@
 
 // -------------------- User Settable Variables --------------------
 int8_t hrpin = 0; //Whatever analog pin the sensor is hooked up to
-int8_t Verbose = 0; //Whether to report measures + description (1) or just measures (0); See docs.
-int8_t report_hr = 0; //if 1, reports raw heart rate and peak threshold data as well, else set to 0 (default 0)
-int8_t thresholding = 0; //Whether to use thresholding, can cause incorrect rejections in conditions of high variability
+int8_t Verbose = 1; //Whether to report measures + description (1) or just measures (0); See docs.
+int8_t report_hr = 1; //if 1, reports raw heart rate and peak threshold data as well, else set to 0 (default 0)
+int8_t thresholding = 1; //Whether to use thresholding, can cause incorrect rejections in conditions of high variability
 float max_bpm = 180; //The max BPM to be expected, used in error detection (default 180)
 float min_bpm = 45; //The min BPM to be expected, used in error detection (default 45)
 

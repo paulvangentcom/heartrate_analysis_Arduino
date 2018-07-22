@@ -24,7 +24,7 @@
  
 // -------------------- Includes --------------------
 #include <math.h>
-#include <arduinoFFT.h>c
+#include <arduinoFFT.h>
 //#include <SD.h>
 
 // -------------------- User Settable Variables --------------------

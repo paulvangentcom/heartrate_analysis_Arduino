@@ -106,7 +106,7 @@ The Peak Finder implementation logs heart rate data, analysis it real-time to id
 USB version
 ^^^^^^^^^^^
 
-The **USB logger** starts when a serial connection is made to the device. It is meant to be used in connection with a computer to log peak positions and RR-intervals (and raw heart rate if set to output). There is an example Python file supplied that shows how to do so using :code:`PySerial`. The logger runs at a fixes 100Hz rate.
+The **USB logger** AVR starts when a serial connection is made to the device (The ARM version starts when power is applied regardless of serial status). It is meant to be used in connection with a computer to log peak positions and RR-intervals (and raw heart rate if set to output). There is an example Python file supplied that shows how to do so using :code:`PySerial`. The peak finder runs at a fixed 100Hz rate. The next update will introduce settable sampling rate
 
 
 SD Version
@@ -122,20 +122,67 @@ Time Series Analysis
 ====================
 This implementation is a basic heart rate analysis toolkit for both AVR and ARM chipsets. It functions like the peak detector, but will also output the described under :ref:`timeseries` every beat.
 
+By default it will output only RR-interval of the last two peaks, and the absolute position in samples-since-start of the last detected peak.
+
+Sample rate will be made settable in the next update.
+
+.. code-block:: C
+
+    // -------------------- User Settable Variables --------------------
+    int8_t hrpin = 0; //Whatever analog pin the sensor is hooked up to
+    int8_t Verbose = 0; //Whether to report measures + description (1) or just measures (0); See docs.
+    int8_t report_hr = 0; //if 1, reports raw heart rate and peak threshold data as well, else set to 0 (default 0)
+    int8_t thresholding = 0; //Whether to use thresholding, can cause incorrect rejections in conditions of high variability
+    float max_bpm = 180; //The max BPM to be expected, used in error detection (default 180)
+    float min_bpm = 45; //The min BPM to be expected, used in error detection (default 45)
+
+    
+- **hrpin**: the pin you connected the sensor to. By default it is set to 0, meaning Analog-0 (often called A0 on the board pinout).
+- **Verbose**: If set to 0, variables are output in CSV format, a descriptive output is given including the variable names. 
+
+    - CSV format = "bpm,ibi,sdnn,sdsd,rmssd,pnn20,pnn50"
+    - Verbose looks like this:
+
+.. code-block:: C
+
+    1090,2679 //first is RR-value, second is peak position in samples-since-start
+    bpm: 66.91
+    ibi: 896.67
+    sdnn: 87.69
+    sdsd: 55.75
+    rmssd: 96.69
+    pnn20: 0.85
+    pnn50: 0.65
+
+**Note** that the SD logger does not have the :code:`Verbose` option.
+   
+- **report_hr**: Set this to '1' to have the logger also output the raw heart rate signal and moving average.
+- **max_bpm**: The maximum BPM to expect, used as a first estimation of peak position accuracy.
+- **min_bpm**: The minimum BPM to expect, used as a first estimation of peak position accuracy.
+
+    
 +-------------+-------------+-----------------------------------------------------+
 | Board type  | Available?  | Notes                                               |
 +=============+=============+=====================================================+
-| Arduino     | No          | Amount of RAM too limited for required buffers      |
+| Arduino     | Yes         | All Except ATTiny based                             |
 +-------------+-------------+-----------------------------------------------------+
-| Teensy      | Yes         | | All ARM-based versions except Teensy LC,          |
-|             |             | | meaning 3.1, 3.2, 3.5, 3.6                        |
+| Teensy      | Yes         | All versions                                        |
 +-------------+-------------+-----------------------------------------------------+
-| Other       | Yes         | | Requires >30 Kilobytes of RAM                     |
+| Other       | Yes         | | Requires >1050 bytes of RAM                       |
 |             |             | | SD version requires 512 bytes extra for buffering |
 |             |             | | Sampling rate fixed @100Hz for now                |
 +-------------+-------------+-----------------------------------------------------+
 
+USB version
+^^^^^^^^^^^
 
+The **USB logger** AVR starts when a serial connection is made to the device (The ARM version starts when power is applied regardless of serial status). It is meant to be used in connection with a computer. There is an example Python file supplied that shows how to do so using :code:`PySerial`. The peak finder runs at a fixed 100Hz rate. The next update will introduce settable sampling rate
+
+
+SD Version
+^^^^^^^^^^
+
+The **SD logger** starts as soon as power is applied to it. If no SD card is present or there is an error writing to the card, the default board light (pin 13) turns on and stays on. It flashes while writing data.
 
 
 .. _fullanalysis:
@@ -159,3 +206,13 @@ For now the sampling rate is fixed at 100Hz. An update is being worked on that w
 |             |             | | Sampling rate fixed @100Hz for now                |
 +-------------+-------------+-----------------------------------------------------+
 
+USB version
+^^^^^^^^^^^
+
+The **USB logger** starts when power is applied regardless of serial status. It is meant to be used in connection with a computer. There is an example Python file supplied that shows how to do so using :code:`PySerial`. The analysis suite runs at a fixed 100Hz rate. A future update will introduce settable sampling rate
+
+
+SD Version
+^^^^^^^^^^
+
+The **SD logger** starts as soon as power is applied to it. If no SD card is present or there is an error writing to the card, the default board light (pin 13) turns on and stays on. It flashes while writing data.
