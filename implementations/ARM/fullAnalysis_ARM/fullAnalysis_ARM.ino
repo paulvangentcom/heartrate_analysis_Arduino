@@ -832,7 +832,6 @@ void processData(struct workingDataContainer &workingData, struct hrdataContaine
   Serial.print(F("\n---------------------------\n"));
   
   Serial.printf("Ending loop function. Full runtime: %.2f miliseconds\n", (micros()-totalt1)/1000.0);
-  //stopWorking();
 
   if(reportRaw)
   {
