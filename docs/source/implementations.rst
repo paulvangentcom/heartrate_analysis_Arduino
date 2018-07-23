@@ -184,6 +184,7 @@ SD Version
 
 The **SD logger** starts as soon as power is applied to it. If no SD card is present or there is an error writing to the card, the default board light (pin 13) turns on and stays on. It flashes while writing data.
 
+---------------------
 
 .. _fullanalysis:
 

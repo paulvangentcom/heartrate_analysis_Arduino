@@ -1,4 +1,4 @@
-V0.3
+V0.30
 - Added AVR Logger Version
 - Added AVR Logger with Hampel filtering
 - Added AVR Peak detector with error rejection and automatic scaling
@@ -36,11 +36,16 @@ V0.7
 - Added simple logger ARM SD Version
 - Merged Adaptive Threshold and Simple Logger
 
+V0.7.1
+- upgraded sampling rate on ARM peakfinder
+- 
+
+
 TODO:
+- insert locally compiled mapl function to optimise speed of adaptive scaling.
 - PeakfindeRMeasures: RRDiff + SqDiff rely on circular buffer, calculate DIFF and SQDIFF properly
 - make samplerate peak finder settable
 - make timeseries analysis peak finder sample rate settable
-- upgrade sampling rate on ARM peakfinder
 - make sampling rate settable for ARM amplitude scaling version
 - make sampling rate settable for ARM full solution version
 - full version, make bpm limits settable
