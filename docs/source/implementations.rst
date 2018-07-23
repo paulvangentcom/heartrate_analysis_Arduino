@@ -73,7 +73,7 @@ The **SD logger** starts as soon as power is applied to it. If no SD card is pre
 
 Peak Finder
 ===========
-The Peak Finder implementation logs heart rate data, analysis it real-time to identify peaks, and returns the peak positions + RR-intervals. It can also be set to output the raw signal as well. On 8-bit AVR implementations it's limited to 100Hz (mostly due to limitations on RAM used for buffering). It uses adaptive scaling and error correction described in :ref:`algorithm functioning`.
+The Peak Finder implementation logs heart rate data, analyses it real-time to identify peaks, and returns the peak positions + RR-intervals. It can also be set to output the raw signal as well. On 8-bit AVR implementations it's limited to 100Hz (mostly due to limitations on RAM used for buffering). It uses adaptive scaling and error correction described in :ref:`algorithm functioning`.
 
 +-------------+-------------+-----------------------------------------------------+
 | Board type  | Available?  | Notes                                               |

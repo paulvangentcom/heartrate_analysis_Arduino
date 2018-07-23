@@ -151,9 +151,9 @@ void getMeanRR(struct workingDataContainer &workingData)
   workingData.RR_mean = workingData.RR_sum / 20;  
 }
 
-int16_t map_int(int16_t x, int16_t in_min, int16_t in_max, int16_t out_min, int16_t out_max)
+long mapl(long x, long in_min, long in_max, long out_min, long out_max)
 {
-  return (x - in_min) * (out_max - out_min + 1) / (in_max - in_min + 1) + out_min;
+  return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
 }
 
 void establish_range(struct workingDataContainer &workingData)
@@ -189,7 +189,7 @@ void readSensors(struct workingDataContainer &workingData)
   workingData.curVal = analogRead(hrpin); //read latest sensor value
 
   establish_range(workingData);
-  workingData.curVal = map(workingData.curVal, workingData.rangeLow, workingData.rangeHigh, 1, 1024);
+  workingData.curVal = mapl(workingData.curVal, workingData.rangeLow, workingData.rangeHigh, 1, 1024);
   if(workingData.curVal < 0) workingData.curVal = 0;
   //if(workingData.curVal > 1023) workingData.curVal = 1023;
   

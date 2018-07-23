@@ -38,15 +38,18 @@ V0.7
 
 V0.7.1
 - upgraded sampling rate on ARM peakfinder
-- 
-
+- inserted locally compiled mapl function to optimise speed of adaptive scaling. 
+- disabled peak finder thresholding pending further tuning
+- make samplerate ARM peak finder settable
 
 TODO:
-- insert locally compiled mapl function to optimise speed of adaptive scaling.
+- peak finders tune thresholding values.
+- optimize local mapl function
 - PeakfindeRMeasures: RRDiff + SqDiff rely on circular buffer, calculate DIFF and SQDIFF properly
-- make samplerate peak finder settable
+- make samplerate AVR peak finder settable
 - make timeseries analysis peak finder sample rate settable
 - make sampling rate settable for ARM amplitude scaling version
 - make sampling rate settable for ARM full solution version
 - full version, make bpm limits settable
 - full version, clipping detection and interpolation
+- settable sample rate: make >1000Hz possible (implement floats to prevent int rounding errors
