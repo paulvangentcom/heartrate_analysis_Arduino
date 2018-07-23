@@ -77,7 +77,7 @@ void readSensors(struct dataBuffers &dataBuf)
   if(scale_data)
   { //scale the data if requested
     establish_range(workingData);
-    workingData.curVal = mapl(workingData.curVal, workingData.rangeLow, workingData.rangeHigh, 1, 1024);  
+    workingData.curVal = mapl(workingData.curVal, workingData.rangeLow, workingData.rangeHigh);  
     if(workingData.curVal < 0) workingData.curVal = 0;
   }
   
@@ -119,9 +119,9 @@ void establish_range(struct workingDataContainer &workingData)
   }
 }
 
-long mapl(long x, long in_min, long in_max, long out_min, long out_max)
+long mapl(long x, long in_min, long in_max)
 {
-  return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+  return (x - in_min) * 1023 / (in_max - in_min) + 1;
 }
 
 void getOCR(long fs)

@@ -25,7 +25,6 @@
 // -------------------- Includes --------------------
 #include <math.h>
 #include <arduinoFFT.h>
-//#include <SD.h>
 
 // -------------------- User Settable Variables --------------------
 int8_t hrpin = 0; //Whatever analog pin the sensor is hooked up to
@@ -36,8 +35,6 @@ int8_t reportRaw = 0; //Whether to also print the raw heart rate data (1=true)
 // -------------------- Non-Settable Variables --------------------
 //declarations
 long t1, t2; //for performance timing purposes
-//File rawData;
-//File processedData;
 IntervalTimer sensorTimer;
 
 /*
@@ -710,13 +707,11 @@ void switchBuffers(struct dataBuffer &dataBuffers, struct workingDataContainer &
   {
     dataBuffers.bufferID = 1;
     if(dataBuffers.dataBuffer0Status != 0) Serial.print("Overflow in buffer 0!\n");
-    //flushData(dataBuffers.dataBuffer0, workingData.datalen, fileName);
     flushBuffer(dataBuffers.dataBuffer0, workingData);
     dataBuffers.dataBuffer0Status = 0;
   } else {
     dataBuffers.bufferID = 0;
     if(dataBuffers.dataBuffer1Status != 0) Serial.print("Overflow in buffer 1!\n");
-    //flushData(dataBuffers.dataBuffer1, workingData.datalen, fileName);
     flushBuffer(dataBuffers.dataBuffer1, workingData);
     dataBuffers.dataBuffer1Status = 0;
   } 

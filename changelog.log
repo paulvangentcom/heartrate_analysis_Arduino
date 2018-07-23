@@ -42,13 +42,17 @@ V0.7.1
 - disabled peak finder thresholding pending further tuning
 - make samplerate ARM peak finder settable
 
+V0.7.2
+- made samplerate AVR peak finder settable
+- made timeseries analysis peak finder sample rate settable
+- made sampling rate settable for ARM amplitude scaling version
+- optimized local mapl function in all sketches it occurs to shave off a few processor cycles
+- updated docs
+
+
 TODO:
 - peak finders tune thresholding values.
-- optimize local mapl function
 - PeakfindeRMeasures: RRDiff + SqDiff rely on circular buffer, calculate DIFF and SQDIFF properly
-- make samplerate AVR peak finder settable
-- make timeseries analysis peak finder sample rate settable
-- make sampling rate settable for ARM amplitude scaling version
 - make sampling rate settable for ARM full solution version
 - full version, make bpm limits settable
 - full version, clipping detection and interpolation

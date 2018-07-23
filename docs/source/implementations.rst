@@ -73,7 +73,7 @@ The **SD logger** starts as soon as power is applied to it. If no SD card is pre
 
 Peak Finder
 ===========
-The Peak Finder implementation logs heart rate data, analyses it real-time to identify peaks, and returns the peak positions + RR-intervals. It can also be set to output the raw signal as well. On 8-bit AVR implementations it's limited to 100Hz (mostly due to limitations on RAM used for buffering). It uses adaptive scaling and error correction described in :ref:`algorithm functioning`.
+The Peak Finder implementation logs heart rate data, analyses it real-time to identify peaks, and returns the peak positions + RR-intervals. It can also be set to output the raw signal as well. On 8-bit AVR implementations it's limited by the available RAM used for buffering. It uses adaptive scaling and error correction described in :ref:`algorithm functioning`.
 
 +-------------+-------------+-----------------------------------------------------+
 | Board type  | Available?  | Notes                                               |
@@ -93,12 +93,14 @@ The Peak Finder implementation logs heart rate data, analyses it real-time to id
 
     // -------------------- User Settable Variables --------------------
     int8_t hrpin = 0; //Whatever analog pin the sensor is hooked up to
+    const int16_t sample_rate = 250; //up to 250 on 328p tested. Not enough RAM more than ~320.
     int8_t report_hr = 1; //if 1, reports raw heart rate and peak threshold data as well, else set to 0 (default 0)
     float max_bpm = 180; //The max BPM to be expected, used in error detection (default 180)
     float min_bpm = 45; //The min BPM to be expected, used in error detection (default 45)
 
 
 - **hrpin**: the pin you connected the sensor to. By default it is set to 0, meaning Analog-0 (often called A0 on the board pinout).
+- **sample_rate**: sample rate to use for raw signal collection and peak detection. On the 8-bit AVR (Arduino) it is tested up to 300Hz. I would recommend caution when going over 250Hz, as stability over 250Hz is not explicitly tested. There is a theoretical maximum of 325Hz based on the RAM. On the ARM chip it is safe to go to 1KHz. A future update will expand the ARM abilities.
 - **report_hr**: Set this to '1' to have the logger also output the raw heart rate signal and moving average.
 - **max_bpm**: The maximum BPM to expect, used as a first estimation of peak position accuracy.
 - **min_bpm**: The minimum BPM to expect, used as a first estimation of peak position accuracy.
