@@ -23,23 +23,23 @@
  */
 
 // -------------------- Includes --------------------
-#include <SdFat.h>
-
+#include <SD.h>
  
 // -------------------- User Settable Variables --------------------
 long sample_rate = 1000; //desired sampling rate in Hz. Not tested over 5000Hz
 int8_t hrpin = 0; //Whatever analog pin the sensor is hooked up to
 int8_t scale_data = 1; // Uses dynamic scaling of data when set to 1, not if set to 0
          
-// -------------------- End User Settable Variables --------------------
+// -------------------- Non-Settable Variables --------------------
 //Don't change values from here on unless you know what you're doing
 long fs;
 long scalingFactor;
 long timerValue;
 long timerMicros;
+
 IntervalTimer sensorTimer;
 
-SdFatSdio SD;
+//SdFatSdio SD;
 File rawData;
 
 // -------------------- Data Struct Definition--------------------
@@ -71,6 +71,7 @@ struct workingDataContainer workingData;
 // -------------------- Functions --------------------
 void stopWorking()
 {
+  Serial.println("Stopped working!");
   digitalWrite(13, HIGH);
   delay(100);
   exit(0);
@@ -79,13 +80,13 @@ void stopWorking()
 void prepareSD()
 {
   Serial.println("starting SD prep");
-  if (!SD.begin()) {
+  if (!SD.begin(BUILTIN_SDCARD)) {
     Serial.println("initialisation failed!");
     stopWorking();
     return;
   }
   Serial.println("initialisation done! Continuing...");
-  rawData = SD.open("raw_hr.csv", FILE_WRITE);
+  rawData = SD.open("RAWHR.CSV", FILE_WRITE);
   rawData.print("\n-------------\nNew Measurement\n-------------\n");
   rawData.print("hr\n");
 }
@@ -177,8 +178,9 @@ void loop()
     for (int i = 0; i < 49; i++) { //write contents of buffer0
       rawData.println(dataBuf.hrdata0[i]);
     }
-    rawData.flush();
     digitalWrite(13, LOW);
+    rawData.flush();
+    Serial.println("written buffer 0");
     
     dataBuf.buffer0State = 0; //release buffer0 after data tranmission, mark as clean
     //here follows same as above, except with reversed buffer order
@@ -201,8 +203,9 @@ void loop()
     {
       rawData.println(dataBuf.hrdata1[i]);
     }
-    rawData.flush();
     digitalWrite(13, LOW);
+    rawData.flush();
+    Serial.println("written buffer 1");
     
     dataBuf.buffer1State = 0;
   }

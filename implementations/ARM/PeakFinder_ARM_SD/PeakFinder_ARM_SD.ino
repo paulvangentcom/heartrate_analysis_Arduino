@@ -22,6 +22,9 @@
  * GNU General Public License for more details.
  */
 
+// -------------------- Includes --------------------
+#include <SD.h>
+
 // -------------------- User Settable Variables --------------------
 int8_t hrpin = 0; //Whatever analog pin the sensor is hooked up to
 const int16_t sample_rate = 1000;
@@ -42,10 +45,27 @@ int16_t max_RR = (60.0 / min_bpm) * 1000.0;
 int16_t min_RR = (60.0 / max_bpm) * 1000.0;
 const int16_t ROIRange = sample_rate * 0.6;
 int16_t RR_multiplier = 1000 / sample_rate;
+long peakSquare;
 
 IntervalTimer sensorTimer;
+IntervalTimer flushData;
+
+File rawData;
 
 // -------------------- Define Data Structs --------------------
+struct dataBuffers 
+{
+  //initialise two buffers of 50 each
+  int16_t hrdata0[50] = {0};
+  int16_t hrmovavg0[50] = {0};
+  int16_t hrdata1[50] = {0};
+  int16_t hrmovavg1[50] = {0};
+  int16_t bufferPointer = 0; //buffer index to write values to
+  int16_t bufferMarker = 0; //0 for buffer 0, 1 for buffer 1
+  int16_t buffer0State = 0; //0 if clean, 1 if dirty
+  int16_t buffer1State = 0;
+};
+
 struct workingDataContainer
 {
   long absoluteCount = 0;
@@ -77,6 +97,7 @@ struct workingDataContainer
   long curPeak = 0;
   long curPeakEnd = 0;
   long lastPeak = 0;
+  int8_t peakDet = 0;
 
   //peak validation variables
   int8_t initFlag = 0; //use for initialisation
@@ -90,9 +111,34 @@ struct workingDataContainer
   int16_t upper_threshold = 1;
 };
 
+struct dataBuffers dataBuf;
 struct workingDataContainer workingData;
 
 // -------------------- Define Helper Functions --------------------
+void stopWorking()
+{
+  digitalWrite(13, HIGH);
+  delay(100);
+  while(1==1)
+  {
+    delay(100000);
+  }
+}
+
+void prepareSD()
+{
+  Serial.println("starting SD prep");
+  if (!SD.begin(BUILTIN_SDCARD)) {
+    Serial.println("initialisation failed!");
+    stopWorking();
+  }
+  Serial.println("initialisation done! Continuing...");
+
+  rawData = SD.open("hrdata.csv", FILE_WRITE);
+  rawData.print("\n-------------\nNew Measurement\n-------------\n");
+  rawData.print("hr\n");
+}
+
 int findMax(int16_t arr[], int16_t arrLen, struct workingDataContainer &workingData)
 {
   largestVal = 0;
@@ -105,7 +151,7 @@ int findMax(int16_t arr[], int16_t arrLen, struct workingDataContainer &workingD
   
   for(int i = 0; i<arrLen; i++)
   {
-    if((abs(lastVal - arr[i]) <= 3) && (arr[i] > 1020))
+    if((abs(lastVal - arr[i]) <= 3))
     {
       if(clipFlag == 0)
       {
@@ -129,10 +175,10 @@ int findMax(int16_t arr[], int16_t arrLen, struct workingDataContainer &workingD
       largestValPos = i;
     }
 
-    if(clippingcount > 3)
+    /*if(clippingcount > 3)
     {
       largestValPos = (clipStart + (clipEnd - clipStart)) / 2;
-    }
+    }*/
   }
     
   return workingData.curPeakEnd - (arrLen - largestValPos);
@@ -183,18 +229,37 @@ void establish_range(struct workingDataContainer &workingData)
 // -------------------- Define Main Functions --------------------
 void readSensors(struct workingDataContainer &workingData)
 {
+  //digitalWrite(13, HIGH);
   workingData.curVal = analogRead(hrpin); //read latest sensor value
 
   establish_range(workingData);
   workingData.curVal = mapl(workingData.curVal, workingData.rangeLow, workingData.rangeHigh);
   if(workingData.curVal < 0) workingData.curVal = 0;
   //if(workingData.curVal > 1023) workingData.curVal = 1023;
+
+  //peakSquare = workingData.curVal * workingData.curVal;
+  //workingData.curVal = mapl(peakSquare, (workingData.rangeLow * workingData.rangeLow), 
+  //                          (workingData.rangeHigh * workingData.rangeHigh));
+  //if(workingData.curVal < 0) workingData.curVal = 0;
+
   
   workingData.movAvgSum += workingData.curVal; //update total sum by adding recent value
   workingData.movAvgSum -= workingData.hrData[workingData.oldestValuePos];  //as well as subtracting oldest value
   workingData.hrMovAvg[workingData.buffPos] = workingData.movAvgSum / workingData.windowSize; //compute moving average
   workingData.hrData[workingData.buffPos] = workingData.curVal; //store sensor value
-  
+  //digitalWrite(13, LOW);
+
+  //put sensor value in correct buffer
+  if (dataBuf.bufferMarker == 0) 
+  {
+    dataBuf.hrdata0[dataBuf.bufferPointer] = workingData.curVal;
+    dataBuf.hrmovavg0[dataBuf.bufferPointer] = workingData.hrMovAvg[workingData.buffPos];
+  } else 
+  {
+    dataBuf.hrdata1[dataBuf.bufferPointer] = workingData.curVal;
+    dataBuf.hrmovavg1[dataBuf.bufferPointer] = workingData.hrMovAvg[workingData.buffPos];
+  }
+  dataBuf.bufferPointer++;
 }
 
 void checkForPeak(struct workingDataContainer &workingData)
@@ -203,14 +268,12 @@ void checkForPeak(struct workingDataContainer &workingData)
   {
     if(workingData.ROIPos >= ROIRange){
       workingData.ROI_overflow = 1;
-      if(report_hr) Serial.print(",");
       return;
     } else {
       workingData.peakFlag = 1;
       workingData.ROI[workingData.ROIPos] = workingData.curVal;
       workingData.ROIPos++;
       workingData.ROI_overflow = 0;
-      if(report_hr) Serial.print(",");
       return;
     }
   }
@@ -238,7 +301,6 @@ void checkForPeak(struct workingDataContainer &workingData)
 
     if(workingData.curRR > max_RR || workingData.curRR < min_RR)
     {
-      if(report_hr) Serial.print(",");
       return; //break if outside of BPM bounds anyway
     } else if(workingData.initFlag != 0)
     {
@@ -246,7 +308,7 @@ void checkForPeak(struct workingDataContainer &workingData)
     } else {
       updatePeak(workingData);
     }
-  } else if (report_hr) Serial.print(",");
+  }
 }
 
 void validatePeak(struct workingDataContainer &workingData)
@@ -268,8 +330,6 @@ void validatePeak(struct workingDataContainer &workingData)
     abs(workingData.curRR - workingData.lastRR) < 500)
     {
       updatePeak(workingData);
-    } else {
-      if(report_hr) Serial.print(",");
     }
   }
 }
@@ -285,18 +345,11 @@ void updatePeak(struct workingDataContainer &workingData)
     workingData.RR_pos = 0;
     workingData.initFlag = 1;
   }
-
-  if(!report_hr)
-  {
-    Serial.print(workingData.curRR);
-    Serial.print(",");
-    Serial.println(workingData.curPeak);
-  } else {
-    Serial.print(workingData.curRR);
-    Serial.print(",");
-    Serial.print(workingData.curPeak);
-  }
+  workingData.peakDet = 1;
+    //peakData.printf("%i,%i\n", workingData.curPeak, workingData.curRR);
+    //peakData.flush();
 }
+
 
 // -------------------- Define Timer Interrupts --------------------
 void interruptFunc()
@@ -306,28 +359,19 @@ void interruptFunc()
   * more than fast enough for 100Hz.
   * higher sampling rate not recommended due to increased RAM requirements
   */
-
-  //report the absolute count
-  if(report_hr)
-  {
-    Serial.print(workingData.absoluteCount);
-    Serial.print(",");
-  }
-
   //read the sensor value
+  Serial.println(workingData.absoluteCount);
   readSensors(workingData);
 
   //check if peak is present, update variables if so
   checkForPeak(workingData);
   
   //report raw signal if requested
-  if(report_hr) 
+  /*if(report_hr) 
   {
-    Serial.print(",");
-    Serial.print(workingData.hrMovAvg[workingData.buffPos]);
-    Serial.print(",");
-    Serial.println(workingData.curVal);
+    rawData.printf("%i,%i\n", workingData.hrMovAvg[workingData.buffPos], workingData.curVal);
   }
+  rawData.flush();*/
   //update buffer position pointers
   workingData.buffPos++;
   workingData.oldestValuePos++;
@@ -337,23 +381,78 @@ void interruptFunc()
   if(workingData.oldestValuePos >= sample_rate) workingData.oldestValuePos = 0;
 
   //increment total sample counter (used for RR determination)
-  workingData.absoluteCount++;  
+  workingData.absoluteCount++;
 }
 
 // -------------------- Setup --------------------
 void setup()
 {
+  pinMode(13, OUTPUT);
   //start serial
   Serial.begin(250000);
-  Serial.println("Welcome, starting up..");
+  prepareSD();
   
   //start timer interrupts
   sensorTimer.begin(interruptFunc, (1000000 / sample_rate));
+  //flushData.begin(flushSD, (sample_rate * 10000));
 }
 
 // -------------------- Main Loop --------------------
 void loop()
 {
+  if(workingData.peakDet == 1)
+  {
+    rawData.printf("P:%i,%i\n", workingData.curPeak, workingData.curRR);
+    workingData.peakDet = 0;
+  }
   
+  if ((dataBuf.bufferPointer >=  49) && (dataBuf.bufferMarker == 0)) 
+  { //time to switch buffer0 to buffer1
+    if(dataBuf.buffer1State == 1)  //check if buffer1 is dirty before switching
+    {
+      Serial.println("buffer0 overflow"); //report error if dirty
+      delay(20); //give the processor some time to finish serial print before halting
+      exit(0); //halt processor
+    } else 
+    { //if switching is possible
+      dataBuf.buffer0State = 1; //mark buffer0 dirty
+    }
+    dataBuf.bufferMarker = 1; //set buffer flag to buffer1
+    dataBuf.bufferPointer = 0; //reset datapoint bufferPointer
+    
+    digitalWrite(13, HIGH);
+    for (int i = 0; i < 49; i++) { //write contents of buffer0
+      rawData.printf("%i,%i\n", dataBuf.hrdata0[i], dataBuf.hrmovavg0[i]);
+    }
+    digitalWrite(13, LOW);
+    rawData.flush();
+    Serial.println("written buffer 0");
+    
+    dataBuf.buffer0State = 0; //release buffer0 after data tranmission, mark as clean
+    //here follows same as above, except with reversed buffer order
+  } else if ((dataBuf.bufferPointer >= 49) && (dataBuf.bufferMarker == 1)) 
+  {
+    if(dataBuf.buffer0State == 1)
+    {
+      Serial.println("buffer1 overflow");
+      delay(20);
+      exit(0);
+    } else 
+    {
+      dataBuf.buffer1State = 1;
+    }
+    dataBuf.bufferMarker = 0;
+    dataBuf.bufferPointer = 0;
+    
+    digitalWrite(13, HIGH);
+    for (int i = 0; i < 49; i++) 
+    {
+      rawData.printf("%i,%i\n", dataBuf.hrdata1[i], dataBuf.hrmovavg1[i]);
+    }
+    digitalWrite(13, LOW);
+    rawData.flush();
+    Serial.println("written buffer 1");
+    
+    dataBuf.buffer1State = 0;
+  }
 }
-

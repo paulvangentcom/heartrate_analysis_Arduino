@@ -56,4 +56,4 @@ TODO:
 - make sampling rate settable for ARM full solution version
 - full version, make bpm limits settable
 - full version, clipping detection and interpolation
-- settable sample rate: make >1000Hz possible (implement floats to prevent int rounding errors
+- settable sample rate: make >1000Hz possible (implement floats to prevent int rounding errors)

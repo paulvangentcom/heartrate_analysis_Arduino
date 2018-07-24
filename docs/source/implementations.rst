@@ -10,6 +10,8 @@ Each implementation may be available for different chipsets. The requirements ar
 
 have different options and characteristics. This section describes them as best as possible. The implementations are split into AVR (Arduino, and other 8-bit Atmel chipsets), and ARM (Teensy and other boards using ARM (Cortex) or other 32-bit chipsets).
 
+**General note:** When using the SD versions, install the SDFat library from Greiman first: https://github.com/greiman/SdFat
+
 ---------------------------
 
 .. _simplelogger: 
