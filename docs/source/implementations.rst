@@ -100,7 +100,7 @@ The Peak Finder implementation logs heart rate data, analyses it real-time to id
 
 
 - **hrpin**: the pin you connected the sensor to. By default it is set to 0, meaning Analog-0 (often called A0 on the board pinout).
-- **sample_rate**: sample rate to use for raw signal collection and peak detection. On the 8-bit AVR (Arduino) it is tested up to 300Hz. I would recommend caution when going over 250Hz, as stability over 250Hz is not explicitly tested. There is a theoretical maximum of 325Hz based on the RAM. On the ARM chip it is safe to go to 1KHz. A future update will expand the ARM abilities.
+- **sample_rate**: sample rate to use for raw signal collection and peak detection. On the 8-bit AVR (Arduino) it is tested up to 300Hz. I would recommend caution when going over 250Hz, as stability over 250Hz is not explicitly tested. There is a theoretical maximum of 325Hz based on available RAM. *On the ARM chip it is safe to go up to 1KHz.* A future update will expand the ARM abilities.
 - **report_hr**: Set this to '1' to have the logger also output the raw heart rate signal and moving average.
 - **max_bpm**: The maximum BPM to expect, used as a first estimation of peak position accuracy.
 - **min_bpm**: The minimum BPM to expect, used as a first estimation of peak position accuracy.
