@@ -40,7 +40,7 @@ int8_t clipEnd = 0;
 int lastVal = 0;
 int16_t max_RR = (60.0 / min_bpm) * 1000.0;
 int16_t min_RR = (60.0 / max_bpm) * 1000.0;
-const int16_t ROIRange = sample_rate * 0.6;
+const int16_t ROIRange = sample_rate * 0.75;
 int16_t RR_multiplier = 1000 / sample_rate;
 
 IntervalTimer sensorTimer;
@@ -129,10 +129,12 @@ int findMax(int16_t arr[], int16_t arrLen, struct workingDataContainer &workingD
       largestValPos = i;
     }
 
-    if(clippingcount > 3)
+    /*if(clippingcount > 3) 
+    //preliminary clipping correction
+    //disabled: doesn't work properly
     {
       largestValPos = (clipStart + (clipEnd - clipStart)) / 2;
-    }
+    }*/
   }
     
   return workingData.curPeakEnd - (arrLen - largestValPos);

@@ -27,7 +27,7 @@
 
 // -------------------- User Settable Variables --------------------
 int8_t hrpin = 0; //Whatever analog pin the sensor is hooked up to
-const int16_t sample_rate = 1000;
+const int16_t sample_rate = 1000; //minimum 250, max 1000
 int8_t report_hr = 1; //if 1, reports raw heart rate and peak threshold data as well, else set to 0 (default 0)
 float max_bpm = 180; //The max BPM to be expected, used in error detection (default 180)
 float min_bpm = 45; //The min BPM to be expected, used in error detection (default 45)
@@ -39,27 +39,29 @@ int largestValPos = 0;
 int clippingcount = 0;
 int8_t clipFlag = 0;
 int clipStart = 0;
-int8_t clipEnd = 0;
+int16_t clipEnd = 0;
 int lastVal = 0;
 int16_t max_RR = (60.0 / min_bpm) * 1000.0;
 int16_t min_RR = (60.0 / max_bpm) * 1000.0;
 const int16_t ROIRange = sample_rate * 0.6;
 int16_t RR_multiplier = 1000 / sample_rate;
 long peakSquare;
+const int16_t bufSize = sample_rate * 1.5;
 
 IntervalTimer sensorTimer;
-IntervalTimer flushData;
+IntervalTimer flusher;
 
 File rawData;
+File peakData;
 
 // -------------------- Define Data Structs --------------------
 struct dataBuffers 
 {
   //initialise two buffers of 50 each
-  int16_t hrdata0[50] = {0};
-  int16_t hrmovavg0[50] = {0};
-  int16_t hrdata1[50] = {0};
-  int16_t hrmovavg1[50] = {0};
+  int16_t hrdata0[bufSize] = {0};
+  int16_t hrmovavg0[bufSize] = {0};
+  int16_t hrdata1[bufSize] = {0};
+  int16_t hrmovavg1[bufSize] = {0};
   int16_t bufferPointer = 0; //buffer index to write values to
   int16_t bufferMarker = 0; //0 for buffer 0, 1 for buffer 1
   int16_t buffer0State = 0; //0 if clean, 1 if dirty
@@ -72,13 +74,13 @@ struct workingDataContainer
   
   //buffers
   int16_t curVal = 0;
-  int16_t datalen = sample_rate;
-  int16_t hrData[sample_rate] = {0};
+  int16_t datalen = bufSize;
+  int16_t hrData[bufSize] = {0};
   int16_t buffPos = 0;
   
   //movavg variables
   int16_t windowSize = sample_rate * 0.6; //windowSize in samples
-  int16_t hrMovAvg[sample_rate] = {0};
+  int16_t hrMovAvg[bufSize] = {0};
   int16_t oldestValuePos = 1;
   long movAvgSum = 0;
   int16_t rangeLow = 0;
@@ -136,7 +138,10 @@ void prepareSD()
 
   rawData = SD.open("hrdata.csv", FILE_WRITE);
   rawData.print("\n-------------\nNew Measurement\n-------------\n");
-  rawData.print("hr\n");
+  rawData.printf("Sample rate: %i Hz\n", sample_rate);
+  rawData.print("peakposition,RR-interval,hr,movingaverage\n");
+
+  //peakData = SD.open("peakdata.csv", FILE_WRITE);
 }
 
 int findMax(int16_t arr[], int16_t arrLen, struct workingDataContainer &workingData)
@@ -345,11 +350,17 @@ void updatePeak(struct workingDataContainer &workingData)
     workingData.RR_pos = 0;
     workingData.initFlag = 1;
   }
-  workingData.peakDet = 1;
-    //peakData.printf("%i,%i\n", workingData.curPeak, workingData.curRR);
-    //peakData.flush();
+  //workingData.peakDet = 1;
+  peakData.print(workingData.curPeak);
+  peakData.print(",");
+  peakData.println(workingData.curRR);
 }
 
+void flushSD()
+{
+  rawData.flush();
+  peakData.flush();
+}
 
 // -------------------- Define Timer Interrupts --------------------
 void interruptFunc()
@@ -377,8 +388,8 @@ void interruptFunc()
   workingData.oldestValuePos++;
 
   //reset buffer pointers if at end of buffer
-  if(workingData.buffPos >= sample_rate) workingData.buffPos = 0;
-  if(workingData.oldestValuePos >= sample_rate) workingData.oldestValuePos = 0;
+  if(workingData.buffPos >= bufSize) workingData.buffPos = 0;
+  if(workingData.oldestValuePos >= bufSize) workingData.oldestValuePos = 0;
 
   //increment total sample counter (used for RR determination)
   workingData.absoluteCount++;
@@ -394,19 +405,12 @@ void setup()
   
   //start timer interrupts
   sensorTimer.begin(interruptFunc, (1000000 / sample_rate));
-  //flushData.begin(flushSD, (sample_rate * 10000));
 }
 
 // -------------------- Main Loop --------------------
 void loop()
 {
-  if(workingData.peakDet == 1)
-  {
-    rawData.printf("P:%i,%i\n", workingData.curPeak, workingData.curRR);
-    workingData.peakDet = 0;
-  }
-  
-  if ((dataBuf.bufferPointer >=  49) && (dataBuf.bufferMarker == 0)) 
+  if ((dataBuf.bufferPointer >=  bufSize) && (dataBuf.bufferMarker == 0)) 
   { //time to switch buffer0 to buffer1
     if(dataBuf.buffer1State == 1)  //check if buffer1 is dirty before switching
     {
@@ -421,16 +425,21 @@ void loop()
     dataBuf.bufferPointer = 0; //reset datapoint bufferPointer
     
     digitalWrite(13, HIGH);
-    for (int i = 0; i < 49; i++) { //write contents of buffer0
-      rawData.printf("%i,%i\n", dataBuf.hrdata0[i], dataBuf.hrmovavg0[i]);
+
+    for (int i = 0; i < bufSize; i++) 
+    { //write contents of buffer0
+      rawData.print(dataBuf.hrdata0[i]);
+      rawData.print(",");
+      rawData.println(dataBuf.hrmovavg0[i]);
     }
     digitalWrite(13, LOW);
     rawData.flush();
+    peakData.flush();
     Serial.println("written buffer 0");
     
     dataBuf.buffer0State = 0; //release buffer0 after data tranmission, mark as clean
     //here follows same as above, except with reversed buffer order
-  } else if ((dataBuf.bufferPointer >= 49) && (dataBuf.bufferMarker == 1)) 
+  } else if ((dataBuf.bufferPointer >= bufSize) && (dataBuf.bufferMarker == 1)) 
   {
     if(dataBuf.buffer0State == 1)
     {
@@ -445,12 +454,15 @@ void loop()
     dataBuf.bufferPointer = 0;
     
     digitalWrite(13, HIGH);
-    for (int i = 0; i < 49; i++) 
+    for (int i = 0; i < bufSize; i++) 
     {
-      rawData.printf("%i,%i\n", dataBuf.hrdata1[i], dataBuf.hrmovavg1[i]);
+      rawData.print(dataBuf.hrdata1[i]);
+      rawData.print(",");
+      rawData.println(dataBuf.hrmovavg1[i]);
     }
     digitalWrite(13, LOW);
     rawData.flush();
+    peakData.flush();
     Serial.println("written buffer 1");
     
     dataBuf.buffer1State = 0;

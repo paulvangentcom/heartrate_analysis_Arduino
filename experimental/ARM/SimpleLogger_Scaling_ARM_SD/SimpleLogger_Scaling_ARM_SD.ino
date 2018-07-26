@@ -26,7 +26,7 @@
 #include <SD.h>
  
 // -------------------- User Settable Variables --------------------
-long sample_rate = 1000; //desired sampling rate in Hz. Not tested over 5000Hz
+const int16_t sample_rate = 1000; //desired sampling rate in Hz. Not tested over 1000Hz
 int8_t hrpin = 0; //Whatever analog pin the sensor is hooked up to
 int8_t scale_data = 1; // Uses dynamic scaling of data when set to 1, not if set to 0
          
@@ -36,8 +36,11 @@ long fs;
 long scalingFactor;
 long timerValue;
 long timerMicros;
+const int16_t bufSize = sample_rate;// * 1.5;
+//int16_t sample_rate_minus = sample_rate - 1;
 
 IntervalTimer sensorTimer;
+IntervalTimer flusher;
 
 //SdFatSdio SD;
 File rawData;
@@ -46,8 +49,8 @@ File rawData;
 struct dataBuffers 
 {
   //initialise two buffers of 50 each
-  int16_t hrdata0[50] = {0};
-  int16_t hrdata1[50] = {0};
+  int16_t hrdata0[bufSize] = {0};
+  int16_t hrdata1[bufSize] = {0};
   int16_t bufferPointer = 0; //buffer index to write values to
   int16_t bufferMarker = 0; //0 for buffer 0, 1 for buffer 1
   int16_t buffer0State = 0; //0 if clean, 1 if dirty
@@ -86,8 +89,9 @@ void prepareSD()
     return;
   }
   Serial.println("initialisation done! Continuing...");
-  rawData = SD.open("RAWHR.CSV", FILE_WRITE);
+  rawData = SD.open("hr_raw.CSV", FILE_WRITE);
   rawData.print("\n-------------\nNew Measurement\n-------------\n");
+  rawData.printf("Sample rate: %i Hz\n", sample_rate);
   rawData.print("hr\n");
 }
 
@@ -145,6 +149,11 @@ long mapl(long x, long in_min, long in_max)
   return (x - in_min) * 1023 / (in_max - in_min) + 1;
 }
 
+void flushSD()
+{
+  rawData.flush();
+}
+
 // -------------------- Setup --------------------
 void setup() 
 {
@@ -155,12 +164,13 @@ void setup()
   scalingFactor = 2 * sample_rate;
   timerMicros = 1000000 / sample_rate;
   sensorTimer.begin(readSensors, timerMicros);
+  //flusher.begin(flushSD, 10000000);
 }
 
 // -------------------- Main Loop --------------------
 void loop()
 {
-  if ((dataBuf.bufferPointer >=  49) && (dataBuf.bufferMarker == 0)) 
+  if ((dataBuf.bufferPointer >=  bufSize) && (dataBuf.bufferMarker == 0)) 
   { //time to switch buffer0 to buffer1
     if(dataBuf.buffer1State == 1)  //check if buffer1 is dirty before switching
     {
@@ -175,7 +185,7 @@ void loop()
     dataBuf.bufferPointer = 0; //reset datapoint bufferPointer
     
     digitalWrite(13, HIGH);
-    for (int i = 0; i < 49; i++) { //write contents of buffer0
+    for (int i = 0; i < bufSize; i++) { //write contents of buffer0
       rawData.println(dataBuf.hrdata0[i]);
     }
     digitalWrite(13, LOW);
@@ -184,7 +194,7 @@ void loop()
     
     dataBuf.buffer0State = 0; //release buffer0 after data tranmission, mark as clean
     //here follows same as above, except with reversed buffer order
-  } else if ((dataBuf.bufferPointer >= 49) && (dataBuf.bufferMarker == 1)) 
+  } else if ((dataBuf.bufferPointer >= bufSize) && (dataBuf.bufferMarker == 1)) 
   {
     if(dataBuf.buffer0State == 1)
     {
@@ -199,7 +209,7 @@ void loop()
     dataBuf.bufferPointer = 0;
     
     digitalWrite(13, HIGH);
-    for (int i = 0; i < 49; i++) 
+    for (int i = 0; i < bufSize; i++) 
     {
       rawData.println(dataBuf.hrdata1[i]);
     }
