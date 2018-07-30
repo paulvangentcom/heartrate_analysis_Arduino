@@ -24,7 +24,6 @@ Index
 
    quickstart
    implementations
-   hookupguide
    heartrateanalysis
    algorithmfunctioning
    development
