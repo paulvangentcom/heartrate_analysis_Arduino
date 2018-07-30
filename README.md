@@ -1,6 +1,6 @@
 # Please check back in a few weeks, currently the repo is in constant state of update. 
 
-## Usable release expected in the week of 16-22 July
+## Usable release expected in the first week of August
 
 # Arduino Heart Rate Analysis Toolkit
 
