@@ -27,9 +27,10 @@
 
 // -------------------- User Settable Variables --------------------
 int8_t hrpin = 0; //Whatever analog pin the sensor is hooked up to
-int8_t scale_data = 1; //Uses dynamic scaling of data when set to 1
-int16_t sample_rate = 250; //between 4 and 250Hz seems stable`
-                          
+int8_t scale_data = 0; //Uses dynamic scaling of data when set to 1
+int16_t sample_rate = 250; //between 4 and 250Hz seems stable
+                           //note: instability occurs occasionally
+                        
 // -------------------- End User Settable Variables --------------------
 //Don't change values from here on unless you know what you're doing
 long scalingFactor;
@@ -37,6 +38,7 @@ long timerValue;
 long t1;
 long t_end;
 long freezeCount;
+int16_t bufSize = 128;
 
 SdFat SD;
 
@@ -46,8 +48,8 @@ File rawData;
 struct dataBuffers 
 {
   //initialise two buffers of 50 each
-  int16_t hrdata0[50] = {0};
-  int16_t hrdata1[50] = {0};
+  int16_t hrdata0[bufSize] = {0};
+  int16_t hrdata1[bufSize] = {0};
   int16_t bufferPointer = 0; //buffer index to write values to
   int16_t bufferMarker = 0; //0 for buffer 0, 1 for buffer 1
   int16_t buffer0State = 0; //0 if clean, 1 if dirty
@@ -72,19 +74,24 @@ struct workingDataContainer workingData;
 // -------------------- Functions --------------------
 void prepareSD()
 {
-  Serial.println("starting SD prep");
-  if (!SD.begin(10, SD_SCK_MHZ(100))) {
-    Serial.println("initialisation failed!");
-    stopWorking();
+  //Serial.println("starting SD prep");
+  if (!SD.begin(10, SPI_HALF_SPEED)) {
+    cli();
+    //Serial.println("initialisation failed!");
+    while(1==1)
+    {
+      
+    }
   }
-  Serial.println("initialisation done! Continuing...");
+  //Serial.println("initialisation done! Continuing...");
 
   rawData = SD.open("hrdata.csv", O_CREAT | O_WRITE);
-  /*rawData.print("\n-------------\nNew Measurement\n-------------\n");
-  rawData.print("Sample rate: ");
+  rawData.print(F("\n-------------\nNew Measurement\n-------------\n"));
+  rawData.print(F("Sample rate: "));
   rawData.print(sample_rate);
-  rawData.println(" Hz");  
-  rawData.print("samplecount,hr\n");  */
+  rawData.println(F(" Hz"));  
+  rawData.print(F("samplecount,hr\n")); 
+  rawData.flush();
 
   //rawData.close();
   //rawData = SD.open("hrdata.csv", O_APPEND);
@@ -157,34 +164,11 @@ void getOCR(long fs)
 { // Calculate timer compare flag value
   timerValue = ((F_CPU / (64 * fs)) - 1);
   scalingFactor = 2 * fs;
-  if(timerValue >= 65535 || timerValue < 1)
-  {
-    Serial.println("Error, timer value incorrect.");
-    Serial.print("Sample rate should be faster than 4Hz. You requested: "); 
-    Serial.println(fs);
-    Serial.println("Speeds above 2KHz are untested and not recommended");
-    Serial.println("=================");
-    Serial.println("connection closed. Restart Serial connection to reset logger");
-    delay(100);
-    exit(0);
-  }  
 }
 
-void setTimerInterrupts(int8_t mode)
+void setTimerInterrupts()
 { // set timer compare value
-  switch(mode)
-  {
-    case 0:
-      getOCR(sample_rate);
-      break;
-    case 1:      
-      Serial.println("Logger ready!");
-      while(Serial.available() == 0){}
-      sample_rate = Serial.parseInt();
-      Serial.flush();
-      getOCR(sample_rate);
-      break;
-  };
+  getOCR(sample_rate);
   //set-up the interrupts on the 328p
   cli();
   TCCR1A = 0;
@@ -213,20 +197,24 @@ void setup()
   //start serial
   Serial.begin(250000);  
   prepareSD();
-  setTimerInterrupts(mode);
+  setTimerInterrupts();
 }
 
 // -------------------- Main Loop --------------------
 void loop()
 {
-  if ((dataBuf.bufferPointer >=  50) && (dataBuf.bufferMarker == 0)) 
+  if ((dataBuf.bufferPointer >=  bufSize) && (dataBuf.bufferMarker == 0)) 
   { //time to switch buffer0 to buffer1
     freezeCount = workingData.absoluteCount;
     if(dataBuf.buffer1State == 1)  //check if buffer1 is dirty before switching
     {
       Serial.println("buffer0 overflow"); //report error if dirty
-      delay(20); //give the processor some time to finish serial print before halting
-      exit(0); //halt processor
+      while(1==1)
+      {
+        
+      }
+      //delay(20); //give the processor some time to finish serial print before halting
+      //exit(0); //halt processor
     } else 
     { //if switching is possible
       dataBuf.buffer0State = 1; //mark buffer0 dirty
@@ -234,8 +222,8 @@ void loop()
     dataBuf.bufferMarker = 1; //set buffer flag to buffer1
     dataBuf.bufferPointer = 0; //reset datapoint bufferPointer
     digitalWrite(13, HIGH);
-    for (int i = 0; i < 50; i++) { //transmit contents of buffer0
-      rawData.print(freezeCount - (50-i));
+    for (int i = 0; i < bufSize; i++) { //transmit contents of buffer0
+      rawData.print(freezeCount - (bufSize-i));
       rawData.print(",");
       rawData.println(dataBuf.hrdata0[i]);
     }
@@ -245,14 +233,16 @@ void loop()
     digitalWrite(13, LOW);
     dataBuf.buffer0State = 0; //release buffer0 after data tranmission, mark as clean
     //here follows same as above, except with reversed buffer order
-  } else if ((dataBuf.bufferPointer >= 50) && (dataBuf.bufferMarker == 1)) 
+  } else if ((dataBuf.bufferPointer >= bufSize) && (dataBuf.bufferMarker == 1)) 
   {
     freezeCount = workingData.absoluteCount;
     if(dataBuf.buffer0State == 1)
     {
       Serial.println("buffer1 overflow");
-      delay(20);
-      exit(0);
+      while(1==1)
+      {
+        
+      }
     } else 
     {
       dataBuf.buffer1State = 1;
@@ -260,9 +250,9 @@ void loop()
     dataBuf.bufferMarker = 0;
     dataBuf.bufferPointer = 0;
     digitalWrite(13, HIGH);
-    for (int i = 0; i < 50; i++) 
+    for (int i = 0; i < bufSize; i++) 
     {
-      rawData.print(freezeCount - (50-i));
+      rawData.print(freezeCount - (bufSize-i));
       rawData.print(",");
       rawData.println(dataBuf.hrdata1[i]);
     }
@@ -272,4 +262,11 @@ void loop()
     digitalWrite(13, LOW);
     dataBuf.buffer1State = 0;
   }
+
+  /*if(Serial.available())
+  {
+    rawData.close();
+    Serial.println("done!");
+    SysCall::halt();
+  }*/
 }

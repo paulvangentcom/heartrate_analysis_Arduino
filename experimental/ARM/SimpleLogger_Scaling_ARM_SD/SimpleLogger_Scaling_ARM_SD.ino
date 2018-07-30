@@ -36,11 +36,12 @@ long fs;
 long scalingFactor;
 long timerValue;
 long timerMicros;
-const int16_t bufSize = sample_rate;// * 1.5;
+const int16_t bufSize = 2048;//sample_rate * 0.2;
+long freezeCount;
 //int16_t sample_rate_minus = sample_rate - 1;
 
 IntervalTimer sensorTimer;
-IntervalTimer flusher;
+//IntervalTimer flusher;
 
 //SdFatSdio SD;
 File rawData;
@@ -59,6 +60,7 @@ struct dataBuffers
 
 struct workingDataContainer
 {
+  long absoluteCount = 0;
   long curVal = 0;
   int16_t rangeLow = 0;
   int16_t rangeLowNext = 1024;
@@ -89,7 +91,7 @@ void prepareSD()
     return;
   }
   Serial.println("initialisation done! Continuing...");
-  rawData = SD.open("hr_raw.CSV", FILE_WRITE);
+  rawData = SD.open("hr_raw.CSV", O_CREAT | O_WRITE);
   rawData.print("\n-------------\nNew Measurement\n-------------\n");
   rawData.printf("Sample rate: %i Hz\n", sample_rate);
   rawData.print("hr\n");
@@ -97,6 +99,7 @@ void prepareSD()
 
 void readSensors()
 { //read the sensors, put in correct buffer
+  workingData.absoluteCount++;
   workingData.curVal = analogRead(hrpin);
   
   if(scale_data)
@@ -172,6 +175,7 @@ void loop()
 {
   if ((dataBuf.bufferPointer >=  bufSize) && (dataBuf.bufferMarker == 0)) 
   { //time to switch buffer0 to buffer1
+    freezeCount = workingData.absoluteCount;
     if(dataBuf.buffer1State == 1)  //check if buffer1 is dirty before switching
     {
       Serial.println("buffer0 overflow"); //report error if dirty
@@ -186,6 +190,8 @@ void loop()
     
     digitalWrite(13, HIGH);
     for (int i = 0; i < bufSize; i++) { //write contents of buffer0
+      rawData.print(freezeCount - (bufSize-i));
+      rawData.print(",");
       rawData.println(dataBuf.hrdata0[i]);
     }
     digitalWrite(13, LOW);
@@ -196,6 +202,7 @@ void loop()
     //here follows same as above, except with reversed buffer order
   } else if ((dataBuf.bufferPointer >= bufSize) && (dataBuf.bufferMarker == 1)) 
   {
+    freezeCount = workingData.absoluteCount;
     if(dataBuf.buffer0State == 1)
     {
       Serial.println("buffer1 overflow");
@@ -211,12 +218,25 @@ void loop()
     digitalWrite(13, HIGH);
     for (int i = 0; i < bufSize; i++) 
     {
+      rawData.print(freezeCount - (bufSize-i));
+      rawData.print(",");
       rawData.println(dataBuf.hrdata1[i]);
     }
     digitalWrite(13, LOW);
     rawData.flush();
+    //rawData.close();
+    //rawData = SD.open("hr_raw.CSV", FILE_WRITE);
     Serial.println("written buffer 1");
     
     dataBuf.buffer1State = 0;
   }
+  /*if(Serial.available())
+  {
+    rawData.close();
+    Serial.println("done!");
+    while(1==1)
+    {
+      delay(1000);
+    }
+  }*/
 }

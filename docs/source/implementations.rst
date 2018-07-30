@@ -67,6 +67,8 @@ The **USB logger** starts when a serial connection is made to the device. It is 
 SD Version
 ^^^^^^^^^^
 
+**Note that this SD version has been moved to the folder experimental on the repository, while I investigate reports of slowdowns and missed datapoints with some SD card types.**
+
 The **SD logger** starts as soon as power is applied to it. If no SD card is present or there is an error writing to the card, the default board light (pin 13) turns on and stays on. It flashes while writing data. "mode" is not available on SD version.
 
 ---------------------------
@@ -85,11 +87,12 @@ The Peak Finder implementation logs heart rate data, analyses it real-time to id
 | Teensy      | Yes         | | All versions, implementation with                 |
 |             |             | | settable sampling rate coming soon                |
 +-------------+-------------+-----------------------------------------------------+
-| Other       | Yes         | | Requires >900 bytes RAM                           |
+| Other       | Yes         | | Requires >900 bytes RAM*                          |
 |             |             | | SD version requires 512 bytes extra for buffering |
 |             |             | | Sampling rate dependent on chip speed             |
 +-------------+-------------+-----------------------------------------------------+
 
+\* RAM is dependent on sample rate, as a higher sample rate will expand the size of the used buffers.
 
 .. code-block:: C
 
@@ -115,6 +118,8 @@ The **USB logger** AVR starts when a serial connection is made to the device (Th
 
 SD Version
 ^^^^^^^^^^
+
+**Note that this SD version has been moved to the folder experimental on the repository, while I investigate reports of slowdowns and missed datapoints with some SD card types.**
 
 The **SD logger** starts as soon as power is applied to it. If no SD card is present or there is an error writing to the card, the default board light (pin 13) turns on and stays on. It flashes while writing data.
 
@@ -185,6 +190,8 @@ The **USB logger** AVR starts when a serial connection is made to the device (Th
 
 SD Version
 ^^^^^^^^^^
+
+**Note that this SD version has been moved to the folder experimental on the repository, while I investigate reports of slowdowns and missed datapoints with some SD card types.**
 
 The **SD logger** starts as soon as power is applied to it. If no SD card is present or there is an error writing to the card, the default board light (pin 13) turns on and stays on. It flashes while writing data.
 
