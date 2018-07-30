@@ -1,7 +1,3 @@
-# Please check back in a few weeks, currently the repo is in constant state of update. 
-
-## Usable release expected in the first week of August
-
 # Arduino Heart Rate Analysis Toolkit
 
 This repository contains Arduino IDE implementations of the [*Python Heart Rate Analysis Toolkit*](https://python-heart-rate-analysis-toolkit.readthedocs.io/en/latest/).
