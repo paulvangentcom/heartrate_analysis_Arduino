@@ -59,6 +59,12 @@ Your options here depend on what exactly you want.
 
 Do you have on-line analysis tools on your PC and just want to stream sensor data? Look at the :ref:`simplelogger` USB implementation.
 
+A second option is the peak finder, which detects and returns detected peaks and RR-intervals realtime: :ref:`peakfinder`.
+
+The time series analysis version is based on the peak finder, and outputs time-series measurements real-time: :ref:`timeseriesanalysis`
+
+Finally, the full implementation is almost identical to the Python implementation. It is the most noise-robust and reliable. It only runs on Teensy ARM board due to the amount of RAM required for buffering and analysis: :ref:`fullanalysis`.
+
 |
 
 ------------------
