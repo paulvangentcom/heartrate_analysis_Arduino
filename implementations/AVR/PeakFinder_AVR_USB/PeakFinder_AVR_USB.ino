@@ -24,7 +24,7 @@
 
 // -------------------- User Settable Variables --------------------
 int8_t hrpin = 0; //Whatever analog pin the sensor is hooked up to
-const int16_t sample_rate = 100; //up to 250 on 328p tested. Not enough RAM more than ~320.
+const int16_t sample_rate = 100; //up to 250Hz tested on the 328p. Not enough RAM for more than ~320.
 int8_t report_hr = 1; //if 1, reports raw heart rate and peak threshold data as well, else set to 0 (default 0)
 float max_bpm = 180; //The max BPM to be expected, used in error detection (default 180)
 float min_bpm = 45; //The min BPM to be expected, used in error detection (default 45)

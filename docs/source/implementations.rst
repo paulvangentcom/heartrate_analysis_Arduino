@@ -18,7 +18,7 @@ have different options and characteristics. This section describes them as best 
 
 Simple Logger
 =============
-The simple logger implementation functions as a basic data logging device with highly precise timing. It utilizes hardware interrupt timers so that the chosen sampling rate is reliably maintained throughout the logging process. This differs from for example logging solutions using linux-boards (such as Raspberry Pi), pc-based logging systems, or indeed many Arduino versions out there, where timing accuracy is often not ensured. `See here for more information on hardware timers <http://www.paulvangent.com/2018/03/28/hardware-interrupts-are-not-that-scary/>`_.
+The simple logger implementation functions as a basic data logging device with highly precise timing. It utilizes hardware interrupt timers so that the chosen sampling rate is reliably maintained throughout the logging process. This differs from for example logging solutions using linux-boards (such as Raspberry Pi), pc-based logging systems, or indeed many Arduino versions out there, where timing is usually done through software timers and therefore often not precise *at all*	. `See here for more information on hardware timers <http://www.paulvangent.com/2018/03/28/hardware-interrupts-are-not-that-scary/>`_.
 
 +-------------+-------------+-----------------------------------------------------+
 | Board type  | Available?  | Notes                                               |
@@ -77,7 +77,7 @@ The **SD logger** starts as soon as power is applied to it. If no SD card is pre
 
 Peak Finder
 ===========
-The Peak Finder implementation logs heart rate data, analyses it real-time to identify peaks, and returns the peak positions + RR-intervals. It can also be set to output the raw signal as well. On 8-bit AVR implementations it's limited by the available RAM used for buffering. It uses adaptive scaling and error correction described in :ref:`algorithm functioning`.
+The Peak Finder implementation logs heart rate data, analyses it real-time to identify peaks, and returns the peak positions + RR-intervals. It can also be set to output the raw signal as well. On 8-bit AVR implementations the sampling rate is limited by the available RAM used for buffering. It uses adaptive scaling and error correction described in :ref:`algorithm functioning`.
 
 +-------------+-------------+-----------------------------------------------------+
 | Board type  | Available?  | Notes                                               |
@@ -98,7 +98,7 @@ The Peak Finder implementation logs heart rate data, analyses it real-time to id
 
     // -------------------- User Settable Variables --------------------
     int8_t hrpin = 0; //Whatever analog pin the sensor is hooked up to
-    const int16_t sample_rate = 250; //up to 250 on 328p tested. Not enough RAM more than ~320.
+    const int16_t sample_rate = 250; //up to 250Hz tested on the 328p. Not enough RAM for more than ~320.
     int8_t report_hr = 1; //if 1, reports raw heart rate and peak threshold data as well, else set to 0 (default 0)
     float max_bpm = 180; //The max BPM to be expected, used in error detection (default 180)
     float min_bpm = 45; //The min BPM to be expected, used in error detection (default 45)
@@ -113,7 +113,7 @@ The Peak Finder implementation logs heart rate data, analyses it real-time to id
 USB version
 ^^^^^^^^^^^
 
-The **USB logger** AVR starts when a serial connection is made to the device (The ARM version starts when power is applied regardless of serial status). It is meant to be used in connection with a computer to log peak positions and RR-intervals (and raw heart rate if set to output). There is an example Python file supplied that shows how to do so using :code:`PySerial`. The peak finder runs at a fixed 100Hz rate. The next update will introduce settable sampling rate
+The **USB logger** AVR starts when a serial connection is made to the device (The ARM version starts when power is applied regardless of serial status). It is meant to be used in connection with a computer to log peak positions and RR-intervals (and raw heart rate if set to output). There is an example Python file supplied that shows how to do so using :code:`PySerial`. The peak finder runs at a settable sampling rate. Over 250Hz is not tested. On the 328p-chip the theoretical limit is 320Hz based on available RAM buffers, but stability above 250Hz is not guaranteed. 
 
 
 SD Version
