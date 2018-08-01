@@ -6,6 +6,11 @@ Several sketches are available for various AVR (e.g. Arduino) and ARM (e.g. Teen
 
 **Note**, reports of SD logging interrupting and/or dropping samples have made me move them to "Experimental". I will expect to implement a fix for this within a few weeks.
 
+# Documentation Online
+Please find the documentation on readthedocs:
+https://embedded-heart-rate-analysis-toolkit.readthedocs.io/en/latest/
+
+
 ### AVR
 - Simple logger
 - Simple logger with outlier filtering
@@ -18,5 +23,5 @@ Several sketches are available for various AVR (e.g. Arduino) and ARM (e.g. Teen
 - Logger with peak position output
 - Raw data logger with full functionality
 
-##To-do:
+## To-do:
 - See Changelog
