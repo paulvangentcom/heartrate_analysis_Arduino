@@ -28,7 +28,7 @@
 // -------------------- User Settable Variables --------------------
 int8_t hrpin = 0; //Whatever analog pin the sensor is hooked up to
 int8_t Verbose = 1; //Whether to report measures + description (1) or just measures (0); See docs.
-int8_t report_hr = 1; //if 1, reports raw heart rate and peak threshold data as well, else set to 0 (default 0)
+int8_t report_hr = 0; //if 1, reports raw heart rate and peak threshold data as well, else set to 0 (default 0)
 int8_t thresholding = 1; //Whether to use thresholding, can cause incorrect rejections in conditions of high variability
 float max_bpm = 180; //The max BPM to be expected, used in error detection (default 180)
 float min_bpm = 45; //The min BPM to be expected, used in error detection (default 45)
@@ -323,7 +323,7 @@ void validatePeak(struct workingDataContainer &workingData)
     {
       if(workingData.curRR < workingData.upper_threshold &&
       workingData.curRR > workingData.lower_threshold &&
-      abs(workingData.curRR - workingData.lastRR) < 500)
+      abs(workingData.curRR - workingData.lastRR) < 600)
       {
         updatePeak(workingData);
       } else {
@@ -368,7 +368,13 @@ void calcRRMeasures(struct workingDataContainer &workingData)
   //function to calculate RR differences and squared differences
   for(int i = 0; i < 19; i++)
   {
-    rrDiff = abs(workingData.recent_RR[i+1] - workingData.recent_RR[i]);
+    int8_t pointer = workingData.RR_pos + i;
+    int8_t pointerNext = workingData.RR_pos + i + 1;
+    
+    if(pointer >= 20) pointer = pointer - 20;
+    if(pointerNext >= 20) pointerNext = pointerNext - 20;
+    
+    rrDiff = abs(workingData.recent_RR[pointerNext] - workingData.recent_RR[pointer]);
     workingData.RRDiff[i] = rrDiff;
     workingData.RRSqDiff[i] = rrDiff * rrDiff;
   }

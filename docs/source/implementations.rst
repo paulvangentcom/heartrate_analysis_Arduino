@@ -129,7 +129,7 @@ The **SD logger** starts as soon as power is applied to it. If no SD card is pre
 
 Time Series Analysis
 ====================
-This implementation is a basic heart rate analysis toolkit for both AVR and ARM chipsets. It functions like the peak detector, but will also output the described under :ref:`timeseries` every beat.
+This implementation is a basic heart rate analysis toolkit for both AVR and ARM chipsets. It functions like the peak detector, but will also output the described under :ref:`timeseries` every beat. For now the logger is locked at 100Hz, which makes it a lot less accurate than the ARM full implementation!
 
 By default it will output only RR-interval of the last two peaks, and the absolute position in samples-since-start of the last detected peak.
 

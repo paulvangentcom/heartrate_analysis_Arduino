@@ -11,17 +11,6 @@ Please find the documentation on readthedocs:
 https://embedded-heart-rate-analysis-toolkit.readthedocs.io/en/latest/
 
 
-### AVR
-- Simple logger
-- Simple logger with outlier filtering
-- Logger with peak position output
-- Raw data logger with full functionality
-
-### ARM
-- Simple logger
-- Simple logger with outlier filtering
-- Logger with peak position output
-- Raw data logger with full functionality
 
 ## To-do:
 - See Changelog
