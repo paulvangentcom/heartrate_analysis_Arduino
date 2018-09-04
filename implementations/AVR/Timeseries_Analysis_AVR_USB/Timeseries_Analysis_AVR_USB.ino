@@ -154,7 +154,7 @@ int findMax(int arr[], int arrLen, struct workingDataContainer &workingData)
 
     if(clippingcount > 3)
     {
-      largestValPos = (clipStart + (clipEnd - clipStart)) / 2;
+      largestValPos = clipStart + ((clipEnd - clipStart) / 2);
     }
   }
     
@@ -322,8 +322,8 @@ void validatePeak(struct workingDataContainer &workingData)
     if(thresholding != 0)
     {
       if(workingData.curRR < workingData.upper_threshold &&
-      workingData.curRR > workingData.lower_threshold &&
-      abs(workingData.curRR - workingData.lastRR) < 600)
+      workingData.curRR > workingData.lower_threshold)// &&
+      //abs(workingData.curRR - workingData.lastRR) < 500)
       {
         updatePeak(workingData);
       } else {
@@ -366,7 +366,7 @@ void updatePeak(struct workingDataContainer &workingData)
 void calcRRMeasures(struct workingDataContainer &workingData) 
 {  
   //function to calculate RR differences and squared differences
-  for(int i = 0; i < 19; i++)
+  for(int i = 0; i < 20; i++)
   {
     int8_t pointer = workingData.RR_pos + i;
     int8_t pointerNext = workingData.RR_pos + i + 1;

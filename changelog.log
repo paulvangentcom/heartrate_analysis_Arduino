@@ -53,6 +53,7 @@ V0.7.3
 - Disabled preliminary clipping correction until alternative is implemented, as it doesn't work well in some circumstances.
 - Removed printf from SD loggers due to repeated sefaults after extended logging, especially at high speed
 - Moved SD implementations to 'Experimental' due to instability. 
+- Fixed bug with calculation of RR differences in AVR timeseries implementation.
 
 
 TODO:
