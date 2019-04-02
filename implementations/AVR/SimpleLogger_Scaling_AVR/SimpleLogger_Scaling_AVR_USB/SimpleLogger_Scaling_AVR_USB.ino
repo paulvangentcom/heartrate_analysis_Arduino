@@ -27,11 +27,11 @@ int8_t hrpin = 0; //Whatever analog pin the sensor is hooked up to
 int8_t scale_data = 1; /*Uses dynamic scaling of data when set to 1, not if set to 0 \
                        sampling speed over 1500Hz not recommended when scaling data 
                        on 8-bit AVR (e.g. Arduino)*/
-int8_t mode = 0; /*Speed mode. \
+int8_t mode = 1; /*Speed mode. \
               0 means the "sample_rate" speed will be used \
               1 means custom. Custom sampling rate is set through Serial after connect.\
               See documentation for details.  */
-int16_t sample_rate = 100; /*should be 4Hz or more, over 2KHz on AVR not recommended.
+int16_t sample_rate = 1000; /*should be 4Hz or more, over 2KHz on AVR not recommended.
                            When using adaptive scaling: over 1.5KHz not recommended on AVR.
                            Higher speeds attainable on 32-bit chipsets.
                            Please see documentation for suggested limits and theoretical limits*/

@@ -25,7 +25,7 @@
 // -------------------- User Settable Variables --------------------
 long sample_rate = 1000; //desired sampling rate in Hz. Not tested over 5000Hz
 int8_t hrpin = 0; //Whatever analog pin the sensor is hooked up to
-int8_t scale_data = 1; // Uses dynamic scaling of data when set to 1, not if set to 0
+int8_t scale_data = 0; // Uses dynamic scaling of data when set to 1, not if set to 0
          
 // -------------------- End User Settable Variables --------------------
 //Don't change values from here on unless you know what you're doing
